@@ -9,13 +9,20 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
-// ErrStockNotFound indicates the stock record does not exist in stock-center.
-var ErrStockNotFound = errors.New("stock not found")
+// ErrMaterialNotFound indicates the material does not exist in stock-center.
+var ErrMaterialNotFound = errors.New("material not found")
 
-// Client is an HTTP client for stock-center internal APIs.
+// ErrBatchNotFound indicates the batch does not exist in stock-center.
+var ErrBatchNotFound = errors.New("batch not found")
+
+// ErrStockBalanceNotFound indicates the stock balance does not exist in stock-center.
+var ErrStockBalanceNotFound = errors.New("stock balance not found")
+
+// Client is an HTTP client for stock-center APIs.
 type Client struct {
 	baseURL    string
 	httpClient *http.Client
@@ -38,174 +45,344 @@ type APIResponse struct {
 	Data    json.RawMessage `json:"data"`
 }
 
-// Stock is the stock record returned by stock-center.
-type Stock struct {
-	ID        uint64 `json:"id"`
-	SKU       string `json:"sku"`
-	Warehouse string `json:"warehouse"`
-	Quantity  int64  `json:"quantity"`
+// Material is the master data record for stainless steel items.
+type Material struct {
+	ID           uint64    `json:"id"`
+	MaterialCode string    `json:"materialCode"`
+	Grade        string    `json:"grade"`
+	Form         string    `json:"form"`
+	Spec         string    `json:"spec"`
+	PrimaryUnit  string    `json:"primaryUnit"`
+	MaterialType string    `json:"materialType"`
+	Status       string    `json:"status"`
+	OrgID        uint64    `json:"orgId"`
+	CreatedAt    time.Time `json:"createdAt"`
+	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
-// StockListData is the paginated list payload from stock-center.
-type StockListData struct {
-	List     []Stock `json:"list"`
-	Total    int64   `json:"total"`
-	Page     int     `json:"page"`
-	PageSize int     `json:"pageSize"`
+// MaterialBatch tracks heat/lot numbers per material.
+type MaterialBatch struct {
+	ID         uint64    `json:"id"`
+	MaterialID uint64    `json:"materialId"`
+	HeatNo     string    `json:"heatNo"`
+	Remark     string    `json:"remark"`
+	OrgID      uint64    `json:"orgId"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
-// GetStockBySKU queries stock-center by SKU and warehouse.
-func (c *Client) GetStockBySKU(ctx context.Context, sku, warehouse string) (*Stock, error) {
-	endpoint := fmt.Sprintf("%s/api/v1/stocks/by-sku?sku=%s&warehouse=%s",
-		c.baseURL,
-		url.QueryEscape(sku),
-		url.QueryEscape(warehouse),
-	)
-	return c.getStock(ctx, endpoint)
+// StockBalance holds dual-measure inventory for material + batch + warehouse.
+type StockBalance struct {
+	ID         uint64    `json:"id"`
+	MaterialID uint64    `json:"materialId"`
+	BatchID    uint64    `json:"batchId"`
+	Warehouse  string    `json:"warehouse"`
+	WeightKg   string    `json:"weightKg"`
+	Quantity   string    `json:"quantity"`
+	OrgID      uint64    `json:"orgId"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
-// GetStockByID queries stock-center by primary key.
-func (c *Client) GetStockByID(ctx context.Context, id uint64) (*Stock, error) {
-	endpoint := fmt.Sprintf("%s/api/v1/stocks/%d", c.baseURL, id)
-	return c.getStock(ctx, endpoint)
+// StockLedger is an immutable inventory movement record.
+type StockLedger struct {
+	ID            uint64    `json:"id"`
+	MaterialID    uint64    `json:"materialId"`
+	BatchID       uint64    `json:"batchId"`
+	Warehouse     string    `json:"warehouse"`
+	DeltaWeightKg string    `json:"deltaWeightKg"`
+	DeltaQuantity string    `json:"deltaQuantity"`
+	RefType       string    `json:"refType"`
+	RefNo         string    `json:"refNo"`
+	Remark        string    `json:"remark"`
+	CreatedAt     time.Time `json:"createdAt"`
 }
 
-// ListStocks queries paginated stock records from stock-center.
-func (c *Client) ListStocks(ctx context.Context, page, pageSize int) (*StockListData, error) {
-	endpoint := fmt.Sprintf("%s/api/v1/stocks?page=%d&pageSize=%d", c.baseURL, page, pageSize)
+// MaterialListData is the paginated material list payload.
+type MaterialListData struct {
+	List     []Material `json:"list"`
+	Total    int64      `json:"total"`
+	Page     int        `json:"page"`
+	PageSize int        `json:"pageSize"`
+}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
-		return nil, err
-	}
+// BatchListData is the paginated batch list payload.
+type BatchListData struct {
+	List     []MaterialBatch `json:"list"`
+	Total    int64           `json:"total"`
+	Page     int             `json:"page"`
+	PageSize int             `json:"pageSize"`
+}
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+// StockBalanceListData is the paginated stock balance list payload.
+type StockBalanceListData struct {
+	List     []StockBalance `json:"list"`
+	Total    int64          `json:"total"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"pageSize"`
+}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
+// StockLedgerListData is the paginated ledger list payload.
+type StockLedgerListData struct {
+	List     []StockLedger `json:"list"`
+	Total    int64         `json:"total"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"pageSize"`
+}
 
-	var apiResp APIResponse
-	if err := json.Unmarshal(body, &apiResp); err != nil {
-		return nil, err
-	}
-	if apiResp.Code != 0 {
-		return nil, fmt.Errorf("stock-center error: %s", apiResp.Message)
-	}
+// CreateMaterialInput is the payload for creating a material.
+type CreateMaterialInput struct {
+	MaterialCode string  `json:"materialCode"`
+	Grade        string  `json:"grade"`
+	Form         string  `json:"form"`
+	Spec         string  `json:"spec"`
+	PrimaryUnit  string  `json:"primaryUnit"`
+	MaterialType string  `json:"materialType"`
+	Status       *string `json:"status,omitempty"`
+}
 
-	var data StockListData
-	if err := json.Unmarshal(apiResp.Data, &data); err != nil {
+// UpdateMaterialInput is the payload for updating a material.
+type UpdateMaterialInput struct {
+	Grade        string `json:"grade"`
+	Form         string `json:"form"`
+	Spec         string `json:"spec"`
+	PrimaryUnit  string `json:"primaryUnit"`
+	MaterialType string `json:"materialType"`
+	Status       string `json:"status"`
+}
+
+// CreateBatchInput is the payload for creating a batch.
+type CreateBatchInput struct {
+	MaterialID uint64 `json:"materialId"`
+	HeatNo     string `json:"heatNo"`
+	Remark     string `json:"remark"`
+}
+
+// UpdateBatchInput is the payload for updating a batch.
+type UpdateBatchInput struct {
+	HeatNo string `json:"heatNo"`
+	Remark string `json:"remark"`
+}
+
+// StockMovementInput is the payload for inbound and outbound stock operations.
+type StockMovementInput struct {
+	MaterialID uint64 `json:"materialId"`
+	BatchID    uint64 `json:"batchId"`
+	Warehouse  string `json:"warehouse"`
+	WeightKg   string `json:"weightKg"`
+	Quantity   string `json:"quantity"`
+	RefType    string `json:"refType"`
+	RefNo      string `json:"refNo"`
+	Remark     string `json:"remark"`
+}
+
+// ListMaterials queries paginated materials from stock-center.
+func (c *Client) ListMaterials(ctx context.Context, page, pageSize int, query url.Values) (*MaterialListData, error) {
+	endpoint := c.listURL("/api/v1/materials", page, pageSize, query)
+	var data MaterialListData
+	if err := c.doGet(ctx, endpoint, &data); err != nil {
 		return nil, err
 	}
 	return &data, nil
 }
 
-// CreateStockInput is the payload for creating stock via stock-center.
-type CreateStockInput struct {
-	SKU       string `json:"sku"`
-	Warehouse string `json:"warehouse"`
-	Quantity  int64  `json:"quantity"`
-}
-
-// CreateStock creates a stock record via stock-center.
-func (c *Client) CreateStock(ctx context.Context, input CreateStockInput) (*Stock, error) {
-	endpoint := fmt.Sprintf("%s/api/v1/stocks", c.baseURL)
-	return c.postStock(ctx, endpoint, input)
-}
-
-// AdjustStockInput is the payload for adjusting stock quantity.
-type AdjustStockInput struct {
-	Quantity int64 `json:"quantity"`
-}
-
-// AdjustStock updates stock quantity via stock-center.
-func (c *Client) AdjustStock(ctx context.Context, id uint64, input AdjustStockInput) (*Stock, error) {
-	endpoint := fmt.Sprintf("%s/api/v1/stocks/%d/quantity", c.baseURL, id)
-	return c.putStock(ctx, endpoint, input)
-}
-
-func (c *Client) getStock(ctx context.Context, endpoint string) (*Stock, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	if err != nil {
+// GetMaterial returns a material by ID.
+func (c *Client) GetMaterial(ctx context.Context, id uint64) (*Material, error) {
+	endpoint := fmt.Sprintf("%s/api/v1/materials/%d", c.baseURL, id)
+	var material Material
+	if err := c.doGetWithNotFound(ctx, endpoint, 40400, ErrMaterialNotFound, &material); err != nil {
 		return nil, err
 	}
+	return &material, nil
+}
 
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
+// CreateMaterial creates a material via stock-center.
+func (c *Client) CreateMaterial(ctx context.Context, input CreateMaterialInput) (*Material, error) {
+	endpoint := fmt.Sprintf("%s/api/v1/materials", c.baseURL)
+	var material Material
+	if err := c.doJSON(ctx, http.MethodPost, endpoint, input, &material); err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	return &material, nil
+}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
+// UpdateMaterial updates a material via stock-center.
+func (c *Client) UpdateMaterial(ctx context.Context, id uint64, input UpdateMaterialInput) (*Material, error) {
+	endpoint := fmt.Sprintf("%s/api/v1/materials/%d", c.baseURL, id)
+	var material Material
+	if err := c.doJSONWithNotFound(ctx, http.MethodPut, endpoint, 40400, ErrMaterialNotFound, input, &material); err != nil {
 		return nil, err
 	}
+	return &material, nil
+}
 
-	var apiResp APIResponse
-	if err := json.Unmarshal(body, &apiResp); err != nil {
+// ListBatches queries paginated batches from stock-center.
+func (c *Client) ListBatches(ctx context.Context, page, pageSize int, query url.Values) (*BatchListData, error) {
+	endpoint := c.listURL("/api/v1/batches", page, pageSize, query)
+	var data BatchListData
+	if err := c.doGet(ctx, endpoint, &data); err != nil {
 		return nil, err
 	}
-	if apiResp.Code != 0 {
-		if resp.StatusCode == http.StatusNotFound || apiResp.Code == 40400 {
-			return nil, ErrStockNotFound
+	return &data, nil
+}
+
+// GetBatch returns a batch by ID.
+func (c *Client) GetBatch(ctx context.Context, id uint64) (*MaterialBatch, error) {
+	endpoint := fmt.Sprintf("%s/api/v1/batches/%d", c.baseURL, id)
+	var batch MaterialBatch
+	if err := c.doGetWithNotFound(ctx, endpoint, 40400, ErrBatchNotFound, &batch); err != nil {
+		return nil, err
+	}
+	return &batch, nil
+}
+
+// CreateBatch creates a batch via stock-center.
+func (c *Client) CreateBatch(ctx context.Context, input CreateBatchInput) (*MaterialBatch, error) {
+	endpoint := fmt.Sprintf("%s/api/v1/batches", c.baseURL)
+	var batch MaterialBatch
+	if err := c.doJSON(ctx, http.MethodPost, endpoint, input, &batch); err != nil {
+		return nil, err
+	}
+	return &batch, nil
+}
+
+// UpdateBatch updates a batch via stock-center.
+func (c *Client) UpdateBatch(ctx context.Context, id uint64, input UpdateBatchInput) (*MaterialBatch, error) {
+	endpoint := fmt.Sprintf("%s/api/v1/batches/%d", c.baseURL, id)
+	var batch MaterialBatch
+	if err := c.doJSONWithNotFound(ctx, http.MethodPut, endpoint, 40400, ErrBatchNotFound, input, &batch); err != nil {
+		return nil, err
+	}
+	return &batch, nil
+}
+
+// ListStocks queries paginated stock balances from stock-center.
+func (c *Client) ListStocks(ctx context.Context, page, pageSize int, query url.Values) (*StockBalanceListData, error) {
+	endpoint := c.listURL("/api/v1/stocks", page, pageSize, query)
+	var data StockBalanceListData
+	if err := c.doGet(ctx, endpoint, &data); err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+// QueryStock returns a balance for material, batch, and warehouse.
+func (c *Client) QueryStock(ctx context.Context, materialID, batchID uint64, warehouse string) (*StockBalance, error) {
+	q := url.Values{}
+	q.Set("materialId", strconv.FormatUint(materialID, 10))
+	q.Set("batchId", strconv.FormatUint(batchID, 10))
+	if warehouse != "" {
+		q.Set("warehouse", warehouse)
+	}
+	endpoint := fmt.Sprintf("%s/api/v1/stocks/query?%s", c.baseURL, q.Encode())
+
+	var balance StockBalance
+	if err := c.doGetWithNotFound(ctx, endpoint, 40400, ErrStockBalanceNotFound, &balance); err != nil {
+		return nil, err
+	}
+	return &balance, nil
+}
+
+// InboundStock increases stock balance via stock-center.
+func (c *Client) InboundStock(ctx context.Context, input StockMovementInput) (*StockBalance, error) {
+	endpoint := fmt.Sprintf("%s/api/v1/stocks/inbound", c.baseURL)
+	var balance StockBalance
+	if err := c.doJSON(ctx, http.MethodPost, endpoint, input, &balance); err != nil {
+		return nil, err
+	}
+	return &balance, nil
+}
+
+// OutboundStock decreases stock balance via stock-center.
+func (c *Client) OutboundStock(ctx context.Context, input StockMovementInput) (*StockBalance, error) {
+	endpoint := fmt.Sprintf("%s/api/v1/stocks/outbound", c.baseURL)
+	var balance StockBalance
+	if err := c.doJSON(ctx, http.MethodPost, endpoint, input, &balance); err != nil {
+		return nil, err
+	}
+	return &balance, nil
+}
+
+// ListLedger queries paginated ledger entries from stock-center.
+func (c *Client) ListLedger(ctx context.Context, page, pageSize int, query url.Values) (*StockLedgerListData, error) {
+	endpoint := c.listURL("/api/v1/ledger", page, pageSize, query)
+	var data StockLedgerListData
+	if err := c.doGet(ctx, endpoint, &data); err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
+func (c *Client) listURL(path string, page, pageSize int, query url.Values) string {
+	q := url.Values{}
+	q.Set("page", strconv.Itoa(page))
+	q.Set("pageSize", strconv.Itoa(pageSize))
+	for key, values := range query {
+		for _, value := range values {
+			q.Add(key, value)
 		}
-		return nil, fmt.Errorf("stock-center error: %s", apiResp.Message)
+	}
+	return fmt.Sprintf("%s%s?%s", c.baseURL, path, q.Encode())
+}
+
+func (c *Client) doGet(ctx context.Context, endpoint string, out interface{}) error {
+	return c.doRequest(ctx, http.MethodGet, endpoint, nil, 0, nil, out)
+}
+
+func (c *Client) doGetWithNotFound(ctx context.Context, endpoint string, notFoundCode int, notFoundErr error, out interface{}) error {
+	return c.doRequest(ctx, http.MethodGet, endpoint, nil, notFoundCode, notFoundErr, out)
+}
+
+func (c *Client) doJSON(ctx context.Context, method, endpoint string, payload, out interface{}) error {
+	return c.doRequest(ctx, method, endpoint, payload, 0, nil, out)
+}
+
+func (c *Client) doJSONWithNotFound(ctx context.Context, method, endpoint string, notFoundCode int, notFoundErr error, payload, out interface{}) error {
+	return c.doRequest(ctx, method, endpoint, payload, notFoundCode, notFoundErr, out)
+}
+
+func (c *Client) doRequest(ctx context.Context, method, endpoint string, payload interface{}, notFoundCode int, notFoundErr error, out interface{}) error {
+	var bodyReader io.Reader
+	if payload != nil {
+		data, err := json.Marshal(payload)
+		if err != nil {
+			return err
+		}
+		bodyReader = bytes.NewReader(data)
 	}
 
-	var stock Stock
-	if err := json.Unmarshal(apiResp.Data, &stock); err != nil {
-		return nil, err
-	}
-	return &stock, nil
-}
-
-func (c *Client) postStock(ctx context.Context, endpoint string, payload interface{}) (*Stock, error) {
-	return c.writeStock(ctx, http.MethodPost, endpoint, payload)
-}
-
-func (c *Client) putStock(ctx context.Context, endpoint string, payload interface{}) (*Stock, error) {
-	return c.writeStock(ctx, http.MethodPut, endpoint, payload)
-}
-
-func (c *Client) writeStock(ctx context.Context, method, endpoint string, payload interface{}) (*Stock, error) {
-	data, err := json.Marshal(payload)
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, bodyReader)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	req, err := http.NewRequestWithContext(ctx, method, endpoint, bytes.NewReader(data))
-	if err != nil {
-		return nil, err
+	if payload != nil {
+		req.Header.Set("Content-Type", "application/json")
 	}
-	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	var apiResp APIResponse
 	if err := json.Unmarshal(body, &apiResp); err != nil {
-		return nil, err
+		return err
 	}
 	if apiResp.Code != 0 {
-		return nil, fmt.Errorf("stock-center error: %s", apiResp.Message)
+		if notFoundErr != nil && (resp.StatusCode == http.StatusNotFound || apiResp.Code == notFoundCode) {
+			return notFoundErr
+		}
+		return fmt.Errorf("stock-center error: %s", apiResp.Message)
 	}
 
-	var stock Stock
-	if err := json.Unmarshal(apiResp.Data, &stock); err != nil {
-		return nil, err
+	if out == nil {
+		return nil
 	}
-	return &stock, nil
+	return json.Unmarshal(apiResp.Data, out)
 }
