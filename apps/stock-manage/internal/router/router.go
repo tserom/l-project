@@ -29,6 +29,15 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	outboundSvc := service.NewOutboundOrderService(db, outboundRepo, opLogRepo, centerClient)
 	outboundHandler := handler.NewOutboundOrderHandler(outboundSvc)
 
+	salesRepo := repository.NewSalesOrderRepository(db)
+	salesSvc := service.NewSalesOrderService(db, salesRepo, opLogRepo)
+
+	shipmentRepo := repository.NewSalesShipmentRepository(db)
+	shipmentSvc := service.NewShipmentService(db, shipmentRepo, salesRepo, opLogRepo, centerClient)
+
+	salesHandler := handler.NewSalesOrderHandler(salesSvc, shipmentSvc)
+	shipmentHandler := handler.NewSalesShipmentHandler(shipmentSvc)
+
 	api := r.Group("/api/v1")
 	{
 		inbound := api.Group("/inbound-orders")
@@ -49,6 +58,28 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			outbound.PUT("/:id", outboundHandler.Update)
 			outbound.DELETE("/:id", outboundHandler.Delete)
 			outbound.POST("/:id/confirm", outboundHandler.Confirm)
+		}
+
+		sales := api.Group("/sales-orders")
+		{
+			sales.GET("", salesHandler.List)
+			sales.GET("/:id/shipments", salesHandler.ListShipments)
+			sales.POST("/:id/shipments", salesHandler.CreateShipment)
+			sales.GET("/:id", salesHandler.Get)
+			sales.POST("", salesHandler.Create)
+			sales.PUT("/:id", salesHandler.Update)
+			sales.DELETE("/:id", salesHandler.Delete)
+			sales.POST("/:id/confirm", salesHandler.Confirm)
+		}
+
+		shipments := api.Group("/sales-shipments")
+		{
+			shipments.GET("", shipmentHandler.List)
+			shipments.GET("/:id", shipmentHandler.Get)
+			shipments.POST("", shipmentHandler.Create)
+			shipments.PUT("/:id", shipmentHandler.Update)
+			shipments.DELETE("/:id", shipmentHandler.Delete)
+			shipments.POST("/:id/confirm", shipmentHandler.Confirm)
 		}
 	}
 

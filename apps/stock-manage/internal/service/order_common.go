@@ -13,9 +13,12 @@ import (
 )
 
 var (
-	ErrOperatorRequired = errors.New("operator is required")
-	ErrLinesRequired    = errors.New("at least one line is required")
-	ErrAlreadyConfirmed = errors.New("document is already confirmed")
+	ErrOperatorRequired        = errors.New("operator is required")
+	ErrCustomerRequired        = errors.New("customerName is required")
+	ErrLinesRequired           = errors.New("at least one line is required")
+	ErrAlreadyConfirmed        = errors.New("document is already confirmed")
+	ErrSalesOrderNotConfirmed  = errors.New("sales order must be confirmed")
+	ErrWarehouseRequired       = errors.New("warehouse is required when copying all order lines")
 )
 
 // CenterError wraps stock-center business errors for HTTP 400 mapping.
@@ -40,6 +43,15 @@ type OrderLineInput struct {
 	Warehouse  string          `json:"warehouse"`
 	WeightKg   decimal.Decimal `json:"weightKg"`
 	Quantity   decimal.Decimal `json:"quantity"`
+}
+
+// SalesOrderLineInput is a sales order line without warehouse.
+type SalesOrderLineInput struct {
+	MaterialID uint64           `json:"materialId"`
+	BatchID    uint64           `json:"batchId"`
+	WeightKg   decimal.Decimal  `json:"weightKg"`
+	Quantity   decimal.Decimal  `json:"quantity"`
+	UnitPrice  *decimal.Decimal `json:"unitPrice,omitempty"`
 }
 
 func validateOrderInput(operator string, lines []OrderLineInput) error {
@@ -101,6 +113,87 @@ func toOutboundLines(inputs []OrderLineInput) []model.OutboundOrderLine {
 			Warehouse:  in.Warehouse,
 			WeightKg:   in.WeightKg,
 			Quantity:   in.Quantity,
+		}
+	}
+	return lines
+}
+
+func validateSalesOrderInput(customerName, operator string, lines []SalesOrderLineInput) error {
+	if strings.TrimSpace(customerName) == "" {
+		return ErrCustomerRequired
+	}
+	if strings.TrimSpace(operator) == "" {
+		return ErrOperatorRequired
+	}
+	if len(lines) == 0 {
+		return ErrLinesRequired
+	}
+	for i, line := range lines {
+		if line.MaterialID == 0 {
+			return errors.New("materialId is required on line " + strconv.Itoa(i+1))
+		}
+		if line.BatchID == 0 {
+			return errors.New("batchId is required on line " + strconv.Itoa(i+1))
+		}
+	}
+	return nil
+}
+
+func validateShipmentLines(lines []OrderLineInput) error {
+	if len(lines) == 0 {
+		return ErrLinesRequired
+	}
+	for i, line := range lines {
+		if line.MaterialID == 0 {
+			return errors.New("materialId is required on line " + strconv.Itoa(i+1))
+		}
+		if line.BatchID == 0 {
+			return errors.New("batchId is required on line " + strconv.Itoa(i+1))
+		}
+		if strings.TrimSpace(line.Warehouse) == "" {
+			return errors.New("warehouse is required on line " + strconv.Itoa(i+1))
+		}
+	}
+	return nil
+}
+
+func toSalesOrderLines(inputs []SalesOrderLineInput) []model.SalesOrderLine {
+	lines := make([]model.SalesOrderLine, len(inputs))
+	for i, in := range inputs {
+		lines[i] = model.SalesOrderLine{
+			MaterialID: in.MaterialID,
+			BatchID:    in.BatchID,
+			WeightKg:   in.WeightKg,
+			Quantity:   in.Quantity,
+			UnitPrice:  in.UnitPrice,
+		}
+	}
+	return lines
+}
+
+func toSalesShipmentLines(inputs []OrderLineInput) []model.SalesShipmentLine {
+	lines := make([]model.SalesShipmentLine, len(inputs))
+	for i, in := range inputs {
+		lines[i] = model.SalesShipmentLine{
+			MaterialID: in.MaterialID,
+			BatchID:    in.BatchID,
+			Warehouse:  in.Warehouse,
+			WeightKg:   in.WeightKg,
+			Quantity:   in.Quantity,
+		}
+	}
+	return lines
+}
+
+func copySalesOrderLinesToShipment(orderLines []model.SalesOrderLine, warehouse string) []model.SalesShipmentLine {
+	lines := make([]model.SalesShipmentLine, len(orderLines))
+	for i, ol := range orderLines {
+		lines[i] = model.SalesShipmentLine{
+			MaterialID: ol.MaterialID,
+			BatchID:    ol.BatchID,
+			Warehouse:  warehouse,
+			WeightKg:   ol.WeightKg,
+			Quantity:   ol.Quantity,
 		}
 	}
 	return lines

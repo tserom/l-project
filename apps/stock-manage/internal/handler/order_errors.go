@@ -24,8 +24,11 @@ func failServiceError(c *gin.Context, err error) {
 
 	switch {
 	case errors.Is(err, service.ErrOperatorRequired),
+		errors.Is(err, service.ErrCustomerRequired),
 		errors.Is(err, service.ErrLinesRequired),
 		errors.Is(err, service.ErrAlreadyConfirmed),
+		errors.Is(err, service.ErrSalesOrderNotConfirmed),
+		errors.Is(err, service.ErrWarehouseRequired),
 		errors.Is(err, repository.ErrNotDraft):
 		response.Fail(c, http.StatusBadRequest, 40000, err.Error())
 	default:
