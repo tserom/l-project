@@ -41,9 +41,34 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	processingRepo := repository.NewProcessingOrderRepository(db)
 	processingSvc := service.NewProcessingOrderService(db, processingRepo, opLogRepo, centerClient)
 	processingHandler := handler.NewProcessingOrderHandler(processingSvc)
+	proxyHandler := handler.NewProxyHandler(centerClient)
 
 	api := r.Group("/api/v1")
 	{
+		materials := api.Group("/materials")
+		{
+			materials.GET("", proxyHandler.ListMaterials)
+			materials.POST("", proxyHandler.CreateMaterial)
+			materials.GET("/:id", proxyHandler.GetMaterial)
+			materials.PUT("/:id", proxyHandler.UpdateMaterial)
+		}
+
+		batches := api.Group("/batches")
+		{
+			batches.GET("", proxyHandler.ListBatches)
+			batches.POST("", proxyHandler.CreateBatch)
+			batches.GET("/:id", proxyHandler.GetBatch)
+			batches.PUT("/:id", proxyHandler.UpdateBatch)
+		}
+
+		stocks := api.Group("/stocks")
+		{
+			stocks.GET("", proxyHandler.ListStocks)
+			stocks.GET("/query", proxyHandler.QueryStock)
+		}
+
+		api.GET("/ledger", proxyHandler.ListLedger)
+
 		inbound := api.Group("/inbound-orders")
 		{
 			inbound.GET("", inboundHandler.List)

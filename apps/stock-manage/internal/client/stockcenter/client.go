@@ -386,3 +386,36 @@ func (c *Client) doRequest(ctx context.Context, method, endpoint string, payload
 	}
 	return json.Unmarshal(apiResp.Data, out)
 }
+
+// Forward proxies an HTTP request to stock-center and returns the raw response.
+func (c *Client) Forward(ctx context.Context, method, path, rawQuery string, body []byte) (statusCode int, respBody []byte, err error) {
+	endpoint := c.baseURL + path
+	if rawQuery != "" {
+		endpoint += "?" + rawQuery
+	}
+
+	var bodyReader io.Reader
+	if len(body) > 0 {
+		bodyReader = bytes.NewReader(body)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, endpoint, bodyReader)
+	if err != nil {
+		return 0, nil, err
+	}
+	if len(body) > 0 {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return 0, nil, err
+	}
+	defer resp.Body.Close()
+
+	respBody, err = io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, err
+	}
+	return resp.StatusCode, respBody, nil
+}
