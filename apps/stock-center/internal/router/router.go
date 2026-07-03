@@ -23,6 +23,11 @@ func New(db *gorm.DB) *gin.Engine {
 	batchSvc := service.NewBatchService(batchRepo, materialRepo)
 	batchHandler := handler.NewBatchHandler(batchSvc)
 
+	balanceRepo := repository.NewStockBalanceRepository(db)
+	ledgerRepo := repository.NewStockLedgerRepository(db)
+	stockSvc := service.NewStockBalanceService(balanceRepo, ledgerRepo)
+	stockHandler := handler.NewStockBalanceHandler(stockSvc)
+
 	r.GET("/health", healthHandler.Check)
 
 	v1 := r.Group("/api/v1")
@@ -36,6 +41,12 @@ func New(db *gorm.DB) *gin.Engine {
 		v1.GET("/batches/:id", batchHandler.Get)
 		v1.POST("/batches", batchHandler.Create)
 		v1.PUT("/batches/:id", batchHandler.Update)
+
+		v1.GET("/stocks", stockHandler.List)
+		v1.GET("/stocks/query", stockHandler.Query)
+		v1.POST("/stocks/inbound", stockHandler.Inbound)
+		v1.POST("/stocks/outbound", stockHandler.Outbound)
+		v1.GET("/ledger", stockHandler.ListLedger)
 	}
 
 	return r

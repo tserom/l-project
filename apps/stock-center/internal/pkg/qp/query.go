@@ -63,6 +63,35 @@ func BatchPredicates(c *gin.Context) ([]Predicate, error) {
 	return parsePredicates(c, batchAPIFields, batchOperators)
 }
 
+var stockAPIFields = map[string]string{
+	"materialId": "material_id",
+	"batchId":    "batch_id",
+	"warehouse":  "warehouse",
+}
+
+var stockOperators = map[Operator]bool{
+	OpEq: true,
+}
+
+var ledgerAPIFields = map[string]string{
+	"refNo":      "ref_no",
+	"materialId": "material_id",
+}
+
+var ledgerOperators = map[Operator]bool{
+	OpEq: true,
+}
+
+// StockPredicates parses whitelisted qp-* filters for stock list queries.
+func StockPredicates(c *gin.Context) ([]Predicate, error) {
+	return parsePredicates(c, stockAPIFields, stockOperators)
+}
+
+// LedgerPredicates parses whitelisted qp-* filters for ledger list queries.
+func LedgerPredicates(c *gin.Context) ([]Predicate, error) {
+	return parsePredicates(c, ledgerAPIFields, ledgerOperators)
+}
+
 func parsePredicates(
 	c *gin.Context,
 	fields map[string]string,
