@@ -38,6 +38,10 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 	salesHandler := handler.NewSalesOrderHandler(salesSvc, shipmentSvc)
 	shipmentHandler := handler.NewSalesShipmentHandler(shipmentSvc)
 
+	processingRepo := repository.NewProcessingOrderRepository(db)
+	processingSvc := service.NewProcessingOrderService(db, processingRepo, opLogRepo, centerClient)
+	processingHandler := handler.NewProcessingOrderHandler(processingSvc)
+
 	api := r.Group("/api/v1")
 	{
 		inbound := api.Group("/inbound-orders")
@@ -80,6 +84,16 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			shipments.PUT("/:id", shipmentHandler.Update)
 			shipments.DELETE("/:id", shipmentHandler.Delete)
 			shipments.POST("/:id/confirm", shipmentHandler.Confirm)
+		}
+
+		processing := api.Group("/processing-orders")
+		{
+			processing.GET("", processingHandler.List)
+			processing.GET("/:id", processingHandler.Get)
+			processing.POST("", processingHandler.Create)
+			processing.PUT("/:id", processingHandler.Update)
+			processing.DELETE("/:id", processingHandler.Delete)
+			processing.POST("/:id/confirm", processingHandler.Confirm)
 		}
 	}
 

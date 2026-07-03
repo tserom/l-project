@@ -185,6 +185,69 @@ func toSalesShipmentLines(inputs []OrderLineInput) []model.SalesShipmentLine {
 	return lines
 }
 
+func validateProcessingOrderInput(
+	operator string,
+	pickLines []ProcessingPickLineInput,
+	finishLines []ProcessingFinishLineInput,
+) error {
+	if strings.TrimSpace(operator) == "" {
+		return ErrOperatorRequired
+	}
+	if len(pickLines) == 0 || len(finishLines) == 0 {
+		return ErrLinesRequired
+	}
+	for i, line := range pickLines {
+		if line.MaterialID == 0 {
+			return errors.New("materialId is required on pick line " + strconv.Itoa(i+1))
+		}
+		if line.BatchID == 0 {
+			return errors.New("batchId is required on pick line " + strconv.Itoa(i+1))
+		}
+		if strings.TrimSpace(line.Warehouse) == "" {
+			return errors.New("warehouse is required on pick line " + strconv.Itoa(i+1))
+		}
+	}
+	for i, line := range finishLines {
+		if line.MaterialID == 0 {
+			return errors.New("materialId is required on finish line " + strconv.Itoa(i+1))
+		}
+		if line.BatchID == 0 {
+			return errors.New("batchId is required on finish line " + strconv.Itoa(i+1))
+		}
+		if strings.TrimSpace(line.Warehouse) == "" {
+			return errors.New("warehouse is required on finish line " + strconv.Itoa(i+1))
+		}
+	}
+	return nil
+}
+
+func toProcessingPickLines(inputs []ProcessingPickLineInput) []model.ProcessingPickLine {
+	lines := make([]model.ProcessingPickLine, len(inputs))
+	for i, in := range inputs {
+		lines[i] = model.ProcessingPickLine{
+			MaterialID: in.MaterialID,
+			BatchID:    in.BatchID,
+			Warehouse:  in.Warehouse,
+			WeightKg:   in.WeightKg,
+		}
+	}
+	return lines
+}
+
+func toProcessingFinishLines(inputs []ProcessingFinishLineInput) []model.ProcessingFinishLine {
+	lines := make([]model.ProcessingFinishLine, len(inputs))
+	for i, in := range inputs {
+		lines[i] = model.ProcessingFinishLine{
+			MaterialID: in.MaterialID,
+			BatchID:    in.BatchID,
+			Warehouse:  in.Warehouse,
+			Quantity:   in.Quantity,
+			WeightKg:   in.WeightKg,
+		}
+	}
+	return lines
+}
+
 func copySalesOrderLinesToShipment(orderLines []model.SalesOrderLine, warehouse string) []model.SalesShipmentLine {
 	lines := make([]model.SalesShipmentLine, len(orderLines))
 	for i, ol := range orderLines {
