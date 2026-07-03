@@ -15,6 +15,9 @@ pnpm-debug.log*
 *.local
 .idea/
 
+# Git worktrees
+.worktrees/
+
 # Go
 bin/
 *.exe
