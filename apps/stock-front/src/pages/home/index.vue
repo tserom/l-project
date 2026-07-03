@@ -1,32 +1,27 @@
 <script setup lang="ts">
-import { IS_WUJIE } from '@/utils/wujie'
+import { RouterLink } from 'vue-router'
+import '@/styles/page.css'
+
+const links = [
+  { to: '/materials', title: '物料档案', desc: '维护材质、规格与编码' },
+  { to: '/stocks', title: '库存查询', desc: '按牌号查看库存余额' },
+  { to: '/inbound', title: '入库单', desc: '来料与完工入库' },
+  { to: '/outbound', title: '出库单', desc: '领料与其它出库' },
+  { to: '/sales', title: '销售单', desc: '销售下单与出库' },
+  { to: '/processing', title: '加工单', desc: '领料加工与损耗' },
+]
 </script>
 
 <template>
   <section class="page">
-    <h1>Vue 子应用 · 首页</h1>
-    <p>这是一个 Vue 3 微前端子应用，已接入 wujie。</p>
-    <p class="page__meta">
-      运行模式：<strong>{{ IS_WUJIE ? '无界子应用' : '独立运行' }}</strong>
-    </p>
+    <h1>不锈钢进销存</h1>
+    <p style="margin: 0 0 20px; color: #6b7280">独立前端，通过 stock-manage API 管理库存与单据。</p>
+
+    <div class="link-grid">
+      <RouterLink v-for="item in links" :key="item.to" :to="item.to" class="link-card">
+        <strong>{{ item.title }}</strong>
+        <span>{{ item.desc }}</span>
+      </RouterLink>
+    </div>
   </section>
 </template>
-
-<style scoped>
-.page h1 {
-  margin: 0 0 12px;
-  font-size: 1.5rem;
-}
-
-.page p {
-  margin: 0 0 8px;
-  color: #4b5563;
-}
-
-.page__meta {
-  margin-top: 16px;
-  padding: 12px 16px;
-  background: #f3f4f6;
-  border-radius: 8px;
-}
-</style>

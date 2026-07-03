@@ -1,5 +1,5 @@
 /**
- * 路由配置（唯一真源，与 Host 导航 apps[].routes 对齐）
+ * 路由配置（唯一真源）
  */
 export interface RouteConfig {
   path?: string
@@ -16,7 +16,12 @@ const routes: RouteConfig[] = [
     component: './layouts/BasicLayout',
     children: [
       { path: '', name: 'home', label: '首页', component: './pages/home' },
-      { path: 'about', name: 'about', label: '关于', component: './pages/about' },
+      { path: 'materials', name: 'materials', label: '物料档案', component: './pages/materials' },
+      { path: 'stocks', name: 'stocks', label: '库存查询', component: './pages/stocks' },
+      { path: 'inbound', name: 'inbound', label: '入库单', component: './pages/inbound' },
+      { path: 'outbound', name: 'outbound', label: '出库单', component: './pages/outbound' },
+      { path: 'sales', name: 'sales', label: '销售单', component: './pages/sales' },
+      { path: 'processing', name: 'processing', label: '加工单', component: './pages/processing' },
     ],
   },
 ]
