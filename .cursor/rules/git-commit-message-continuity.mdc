@@ -1,0 +1,23 @@
+---
+description: 连续提交时在 feat 文案末尾追加序号；合代码只推功能分支并建 MR/PR 草稿或给出链接，不直接 merge/push 到其它分支
+alwaysApply: true
+---
+
+# Git commit message：连续修改序号
+
+当用户在同一需求/工单上多次提交、且希望与「上一次 commit message」保持同一前缀时：
+
+1. 以用户给出的**上一条 message 全文**为基准（例如 `feat: IJJCA3-电商对账-得物增加2个TAB费用`）。
+2. 本次在**末尾直接追加递增数字**（无空格、无连字符），形成 `…费用2`、`…费用3`，用于区分连续提交。
+3. 若用户未提供上一条 message，用 `git log -1 --pretty=%s` 查看当前分支最近一次提交主题，再在其后追加下一个序号（需与用户确认是否同一需求线）。
+
+## 合代码（MR / PR）
+
+- Agent **不要**在本机 `git checkout <目标分支>` + merge/rebase/cherry-pick，也**不要** `git push` 到 `test`、`main`、`develop` 等共享分支，把功能直接合进别的分支。
+- 协助合代码时只做：在**功能分支**上 commit，并 `git push origin <feature-branch>`。
+- 推送后，在远端仓库创建 **MR/PR 草稿**（平台以项目为准：GitLab MR、GitHub PR、Gitee 等），或给出可点击的**创建 MR/PR 页面链接**，由用户审阅、点合并。
+- 能用 CLI 时优先创建草稿并返回链接，例如：
+  - GitHub：`gh pr create --draft --base <目标分支> --head <feature-branch>`
+  - GitLab：`glab mr create --draft --target-branch <目标分支> --source-branch <feature-branch>`
+- 若环境无对应 CLI、或无法自动创建，在回复中说明分支名，并附上仓库「Compare / New merge request / New pull request」类 URL，让用户自行打开操作。
+- 仅在用户**明确要求**且确认权限时，才可代为 merge、push 到共享分支或其它非常规操作。

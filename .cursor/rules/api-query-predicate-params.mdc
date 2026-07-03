@@ -1,0 +1,119 @@
+---
+description: API 查询谓词参数 qp-<field>-<operator>：field 用公开 API 字段名，后端白名单映射，禁止暴露数据库列名或拼 SQL
+alwaysApply: true
+---
+
+# API 查询谓词参数：`qp-<field>-<operator>`
+
+设计或修改列表、导出、后台管理筛选接口时，默认使用受限查询谓词参数：
+
+```text
+qp-<field>-<operator>=<value>
+```
+
+**人类可读完整版**：`docs/standards/api-query-predicate-params.md`
+
+---
+
+## 基本约定
+
+| 段 | 含义 | 例子 |
+|---|---|---|
+| `qp` | query predicate/query parameter 前缀 | 固定 |
+| `field` | **公开 API 字段名**，通常 camelCase | `createdAt`、`partyName` |
+| `operator` | 后端允许的受限操作符 | `eq`、`in`、`gte` |
+| `value` | 值，只能当数据解析 | `1`、`1,2,3` |
+
+示例：
+
+```text
+qp-id-eq=1
+qp-id-in=1,2,3
+qp-status-eq=enabled
+qp-partyName-like=客户A
+qp-createdAt-gte=2026-01-01
+qp-createdAt-lte=2026-01-31
+```
+
+---
+
+## 字段名规则
+
+`field` 必须使用接口请求/响应里的公开字段名：
+
+```text
+qp-createdAt-gte=2026-01-01
+qp-partyName-like=客户A
+```
+
+后端用白名单映射到真实查询字段：
+
+```text
+createdAt -> created_at
+partyName -> party_name
+```
+
+禁止默认暴露数据库列名：
+
+```text
+qp-created_at-gte=2026-01-01
+qp-party_name-like=客户A
+```
+
+除非该接口本身公开字段就是 snake_case。
+
+---
+
+## v1 操作符
+
+| Operator | 含义 | SQL 类比 |
+|---|---|---|
+| `eq` | 等于 | `=` |
+| `ne` | 不等于 | `!=` |
+| `in` | 多值命中，英文逗号分隔 | `IN (...)` |
+| `like` | 模糊匹配；contains/prefix 由字段声明 | `LIKE` |
+| `gt` | 大于 | `>` |
+| `gte` | 大于等于 | `>=` |
+| `lt` | 小于 | `<` |
+| `lte` | 小于等于 | `<=` |
+
+多个 `qp-*` 参数默认是 `AND`。
+
+---
+
+## 后端 MUST / MUST NOT
+
+| ✅ MUST | ❌ MUST NOT |
+|---|---|
+| 每个接口维护 `field + operator -> query` 白名单 | 让前端引用任意数据库列 |
+| 未知字段、非法 operator、类型转换失败返回 400 | 把 `value` 当 SQL 片段 |
+| `in` 按逗号拆分并逐项类型转换 | 字符串拼接 SQL |
+| 所有条件走参数绑定或 ORM query builder | 因有 `qp-*` 就默认允许查敏感字段 |
+
+---
+
+## 边界
+
+`qp-*` 只表达字段谓词筛选：
+
+- 列表筛选
+- 导出筛选
+- 管理后台表格筛选
+- 状态 Tab 映射到单字段谓词
+
+不要把这些放进 `qp-*`：
+
+- `page` / `pageSize`：分页
+- `sort`：排序，单独设计
+- `q`：全文/多字段搜索
+- `OR`、括号、嵌套条件、任意字段路径、SQL 函数
+
+---
+
+## PR 勾选
+
+- [ ] `field` 是否都是公开 API 字段名？
+- [ ] 后端是否显式白名单 `field + operator`？
+- [ ] 非法字段/operator/类型转换是否返回 400？
+- [ ] SQL 是否参数绑定或 query builder 生成？
+- [ ] 分页、排序、全文搜索是否留在 `qp-*` 之外？

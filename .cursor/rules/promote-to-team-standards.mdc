@@ -1,0 +1,70 @@
+---
+description: 可复用规则/Skill 时提醒用户是否晋升到 team-agent-standards；说明 guidelines/docs/skills 分工
+alwaysApply: true
+---
+
+# 晋升团队规范：何时提醒写入 team-agent-standards
+
+在**任意业务项目**中协作时，若产生**可跨项目复用**的规则或 Skill，**必须提醒用户**是否纳入 [team-agent-standards](https://github.com/tserom/team-agent-standards)，并说明应放在哪一层。仓库职能见该仓库 `docs/REPOSITORY_STRUCTURE.md`。
+
+---
+
+## 何时必须提醒用户（触发器）
+
+完成或讨论以下任一情况后，用 **1～3 句话**主动询问，**不要静默**只在业务仓库落盘：
+
+1. **新建或大幅改写** 业务项目的 `.cursor/rules/*.mdc`、`.cursor/rules/*.md`。
+2. **新建或大幅改写** 业务项目的 `.cursor/skills/**/SKILL.md`（或用户级 skill，且你认为团队可共用）。
+3. 总结出 **决策表 / MUST-NOT / 分层约定**（如 API L0–L3、Git/MR 流程），且不只适用于当前需求。
+4. 在 `docs/standards/`、`openspec/`、`interactions/` 写了**通用**工程约定（非单接口、单页面）。
+5. 用户说「以后都这样做」「其它项目也要」。
+
+**不必提醒**：纯业务文案、单需求 OpenSpec、单页字段、仅本仓库后端路径的 call-map。
+
+---
+
+## 提醒话术模板（可精简）
+
+> 这条约定若要在多个项目生效，建议晋升到 **team-agent-standards**：  
+> - Agent 短规则 → `guidelines/<name>.md` + `cursor-manifest.json` + `build.py cursor`  
+> - 人读长文 → `docs/standards/`  
+> - 操作流程类 Skill → `docs/skills/<name>/SKILL.md`  
+> 需要的话我可以按 `docs/REPOSITORY_STRUCTURE.md` 帮你起草 MR 草稿。是否要做？
+
+**等用户确认后再**改 team-agent-standards 仓库（除非用户明确授权直接改该仓库）。
+
+---
+
+## 放哪一层（给用户选）
+
+| 内容类型 | 团队仓库位置 | 业务项目保留 |
+|----------|--------------|--------------|
+| AI 必遵约束、清单、5 问决策表 | `guidelines/*.md` | 仅链到团队或复制构建后的 `.mdc` |
+| 评审/飞书长文、完整案例 | `docs/standards/*.md` | 可选副本或链接 |
+| 任务流程 Skill | `docs/skills/<name>/SKILL.md` | `.cursor/skills/` 复制安装 |
+| 单域双表、单需求交互 | **不晋升** | `openspec/`、项目 `.cursor/rules` |
+
+---
+
+## Agent 协助晋升时的检查清单
+
+用户同意晋升后，在 **team-agent-standards** 仓库内：
+
+- [ ] `guidelines/<name>.md`（或更新已有文件）
+- [ ] 需要则 `docs/standards/` 长文 + guideline 内链接
+- [ ] `cursor-manifest.json` 新增/更新 rule（`output`、`alwaysApply`、`globs`）
+- [ ] `python3 scripts/build.py cursor`（及团队在用的其它 agent id）
+- [ ] `CHANGELOG.md` Unreleased
+- [ ] Skill 则 `docs/skills/<name>/SKILL.md` + 更新 `docs/skills/README.md`
+- [ ] 告知用户：合并后在各业务项目增量同步团队 `.mdc`（`cp generated/cursor/rules/*.mdc → .cursor/rules/`，见 team 仓库 README「增量更新」）
+
+**禁止**：只把团队通用内容写在 `~/.cursor/rules` 或单一业务仓库而不提醒 team 真源。
+
+---
+
+## 与业务项目专用规则的关系
+
+- 业务仓库 `.cursor/rules`：**仅**本项目/本域（如 `other-in-dual-table-cheatsheet.mdc`）。
+- 团队仓库构建出的 `.mdc`：复制进业务项目后**不要长期手改**；改 `guidelines/` 再 build。
+
+领域专用规则优先于本 guideline 中的通用建议；冲突时以业务 OpenSpec 为准，并建议在 team 文档注明例外。
