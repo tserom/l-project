@@ -15,6 +15,11 @@ pnpm-debug.log*
 *.local
 .idea/
 
+# Go
+bin/
+*.exe
+*.test
+
 # Env secrets
 .env
 .env.*
