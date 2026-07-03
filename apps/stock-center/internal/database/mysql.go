@@ -34,7 +34,12 @@ func NewMySQL(cfg *config.Config) (*gorm.DB, error) {
 	sqlDB.SetMaxOpenConns(50)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
-	if err := db.AutoMigrate(&model.Stock{}); err != nil {
+	if err := db.AutoMigrate(
+		&model.Material{},
+		&model.MaterialBatch{},
+		&model.StockBalance{},
+		&model.StockLedger{},
+	); err != nil {
 		return nil, fmt.Errorf("auto migrate: %w", err)
 	}
 
