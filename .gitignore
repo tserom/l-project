@@ -1,6 +1,9 @@
 # Dependencies & build output (monorepo)
 node_modules/
 dist/
+!apps/stock-manage/internal/static/dist/
+apps/stock-manage/internal/static/dist/*
+!apps/stock-manage/internal/static/dist/index.html
 dist-ssr/
 coverage/
 

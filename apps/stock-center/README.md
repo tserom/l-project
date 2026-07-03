@@ -36,6 +36,52 @@ make run
 
 健康检查：`GET /health`
 
+## 一键启动
+
+先构建二进制（推荐）：
+
+```bash
+# 仓库根目录
+make build-all
+```
+
+启动 MySQL 并初始化库（首次）：
+
+```bash
+mysql -u root -p < scripts/mysql/init-databases.sql
+cp apps/stock-center/.env.example apps/stock-center/.env
+cp apps/stock-manage/.env.example apps/stock-manage/.env
+```
+
+Mac / Linux：
+
+```bash
+chmod +x scripts/launcher/start.sh
+./scripts/launcher/start.sh
+```
+
+Windows：
+
+```bat
+scripts\launcher\start.bat
+```
+
+启动器会依次拉起 stock-center（8081）、stock-manage（8082），健康检查通过后打开浏览器。若 `bin/` 下无二进制，将回退为 `go run`。
+
+## 数据库备份
+
+双库一并导出：
+
+```bash
+mysqldump -u root -p --databases stock_center stock_manage > backup-$(date +%Y%m%d).sql
+```
+
+还原：
+
+```bash
+mysql -u root -p < backup-YYYYMMDD.sql
+```
+
 ## API（示例）
 
 | 方法 | 路径 | 说明 |

@@ -7,6 +7,7 @@ import (
 	"github.com/tserom/l-project/apps/stock-manage/internal/handler"
 	"github.com/tserom/l-project/apps/stock-manage/internal/repository"
 	"github.com/tserom/l-project/apps/stock-manage/internal/service"
+	"github.com/tserom/l-project/apps/stock-manage/internal/static"
 	"gorm.io/gorm"
 )
 
@@ -121,6 +122,8 @@ func New(cfg *config.Config, db *gorm.DB) *gin.Engine {
 			processing.POST("/:id/confirm", processingHandler.Confirm)
 		}
 	}
+
+	static.Register(r)
 
 	return r
 }

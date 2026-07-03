@@ -55,6 +55,27 @@ make run
 
 健康检查：`GET /health`
 
+## 内嵌前端
+
+生产构建会将 `stock-front` 静态资源打入本服务二进制（`//go:embed`）。开发时仍可用 `apps/stock-front` 独立 `pnpm dev`（代理到 8082）。
+
+```bash
+# 仓库根目录：构建前端并复制到 internal/static/dist，再编译 manage
+make build-manage
+```
+
+## 一键启动
+
+见 [stock-center README](../stock-center/README.md#一键启动)。manage 启动后浏览器访问 **http://localhost:8082** 即为内嵌前端。
+
+## 数据库备份
+
+业务库与 center 库需分别备份，推荐在仓库根目录执行：
+
+```bash
+mysqldump -u root -p --databases stock_center stock_manage > backup-$(date +%Y%m%d).sql
+```
+
 ## API（示例）
 
 | 方法 | 路径 | 说明 |
