@@ -3,7 +3,7 @@ BIN_DIR := $(ROOT)/bin
 FRONT_DIST := $(ROOT)/apps/stock-front/dist
 EMBED_DIST := $(ROOT)/apps/stock-manage/internal/static/dist
 
-.PHONY: build-front build-center build-manage build-all pack-mac pack-windows dev-sales-front build-sales-front
+.PHONY: build-front build-center build-manage build-all pack-mac pack-windows dev-sales-front build-sales-front pack-sales-front-windows
 
 build-front:
 	cd apps/stock-front && pnpm install && pnpm build
@@ -32,3 +32,6 @@ dev-sales-front:
 
 build-sales-front:
 	cd apps/sales-front && pnpm install && pnpm build
+
+pack-sales-front-windows:
+	bash scripts/pack/pack-sales-front-windows.sh

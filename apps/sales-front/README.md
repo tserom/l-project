@@ -12,6 +12,18 @@ cd apps/sales-front && pnpm install && pnpm dev
 
 或在仓库根目录：`make dev-sales-front`
 
+## 发给别人（Windows 运行包）
+
+在有 Node / pnpm 的机器上打包：
+
+```bash
+make pack-sales-front-windows
+```
+
+生成：`dist/sales-front-windows.zip`
+
+对方：解压 → 双击 `start-sales.bat`（无需安装 Node）。说明见包内 `README.txt`。
+
 ## 路由
 
 | 路径 | 说明 |
