@@ -1,5 +1,6 @@
 import { Button, Input, InputNumber, Space, Table } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import { useEffect, useRef, useState } from 'react'
 import type { SalesOrderLine } from '@/types/salesOrder'
 import {
   calcLineAmount,
@@ -29,16 +30,62 @@ function updateLine(
   })
 }
 
+/** 本地缓冲，避免拼音组字时父级受控 value 刷新打断 IME */
+function ImeTextInput({
+  value,
+  onCommit,
+}: {
+  value: string
+  onCommit: (next: string) => void
+}) {
+  const [inner, setInner] = useState(value)
+  const composingRef = useRef(false)
+
+  useEffect(() => {
+    if (!composingRef.current) {
+      setInner(value)
+    }
+  }, [value])
+
+  return (
+    <Input
+      value={inner}
+      onCompositionStart={() => {
+        composingRef.current = true
+      }}
+      onCompositionEnd={(e) => {
+        composingRef.current = false
+        const next = e.currentTarget.value
+        setInner(next)
+        onCommit(next)
+      }}
+      onChange={(e) => {
+        const next = e.target.value
+        setInner(next)
+        const composing =
+          composingRef.current ||
+          Boolean((e.nativeEvent as InputEvent).isComposing)
+        if (!composing) {
+          onCommit(next)
+        }
+      }}
+      onBlur={(e) => {
+        onCommit(e.target.value)
+      }}
+    />
+  )
+}
+
 export default function OrderLinesTable({ value, onChange }: Props) {
   const columns: ColumnsType<SalesOrderLine> = [
     {
       title: '物资',
       dataIndex: 'materialName',
       render: (_, row) => (
-        <Input
+        <ImeTextInput
           value={row.materialName}
-          onChange={(e) =>
-            onChange(updateLine(value, row.id, { materialName: e.target.value }))
+          onCommit={(materialName) =>
+            onChange(updateLine(value, row.id, { materialName }))
           }
         />
       ),
@@ -48,9 +95,9 @@ export default function OrderLinesTable({ value, onChange }: Props) {
       dataIndex: 'spec',
       width: 120,
       render: (_, row) => (
-        <Input
+        <ImeTextInput
           value={row.spec}
-          onChange={(e) => onChange(updateLine(value, row.id, { spec: e.target.value }))}
+          onCommit={(spec) => onChange(updateLine(value, row.id, { spec }))}
         />
       ),
     },
@@ -59,9 +106,9 @@ export default function OrderLinesTable({ value, onChange }: Props) {
       dataIndex: 'unit',
       width: 80,
       render: (_, row) => (
-        <Input
+        <ImeTextInput
           value={row.unit}
-          onChange={(e) => onChange(updateLine(value, row.id, { unit: e.target.value }))}
+          onCommit={(unit) => onChange(updateLine(value, row.id, { unit }))}
         />
       ),
     },
@@ -108,10 +155,10 @@ export default function OrderLinesTable({ value, onChange }: Props) {
       dataIndex: 'lineRemark',
       width: 120,
       render: (_, row) => (
-        <Input
+        <ImeTextInput
           value={row.lineRemark ?? ''}
-          onChange={(e) =>
-            onChange(updateLine(value, row.id, { lineRemark: e.target.value }))
+          onCommit={(lineRemark) =>
+            onChange(updateLine(value, row.id, { lineRemark }))
           }
         />
       ),
