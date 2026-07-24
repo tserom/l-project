@@ -20,8 +20,9 @@ echo "==> Building sales-front..."
 
 echo "==> Staging Windows bundle..."
 rm -rf "$STAGING_PARENT"
-mkdir -p "$STAGING/web"
-cp -R "$ROOT/apps/sales-front/dist/." "$STAGING/web/"
+mkdir -p "$STAGING"
+# Flat layout: index.html + assets next to start-sales.bat (easier for recipients)
+cp -R "$ROOT/apps/sales-front/dist/." "$STAGING/"
 cp "$PACK_SRC/start-sales.bat" "$STAGING/"
 cp "$PACK_SRC/serve.ps1" "$STAGING/"
 cp "$PACK_SRC/README.txt" "$STAGING/"

@@ -1,10 +1,11 @@
-# Serves pack "web" folder with SPA fallback. ASCII-only messages for Win PS 5.1.
+# Serves files next to this script (flat pack layout) with SPA fallback.
 $ErrorActionPreference = 'Stop'
 
 $port = 5175
-$webRoot = Join-Path $PSScriptRoot 'web'
+$webRoot = $PSScriptRoot
 if (-not (Test-Path (Join-Path $webRoot 'index.html'))) {
-  Write-Host '[ERROR] Missing web\index.html'
+  Write-Host '[ERROR] Missing index.html next to serve.ps1'
+  Write-Host ("Folder: {0}" -f $webRoot)
   exit 1
 }
 
@@ -22,6 +23,9 @@ $mime = @{
   '.woff2'= 'font/woff2'
   '.ttf'  = 'font/ttf'
   '.map'  = 'application/json'
+  '.bat'  = 'text/plain'
+  '.ps1'  = 'text/plain'
+  '.txt'  = 'text/plain; charset=utf-8'
 }
 
 $prefix = "http://127.0.0.1:$port/"

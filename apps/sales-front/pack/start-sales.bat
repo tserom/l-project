@@ -9,8 +9,27 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist "%~dp0web\index.html" (
-  echo [ERROR] Missing web\index.html - incomplete unzip?
+if not exist "%~dp0index.html" (
+  echo [ERROR] Missing index.html next to this bat.
+  echo Folder: %~dp0
+  echo.
+  echo Expected layout after unzip:
+  echo   sales-front-windows\
+  echo     start-sales.bat
+  echo     serve.ps1
+  echo     index.html
+  echo     assets\
+  echo.
+  echo Do NOT copy only the .bat file. Unzip the whole zip.
+  echo.
+  dir /b "%~dp0"
+  echo.
+  pause
+  exit /b 1
+)
+
+if not exist "%~dp0serve.ps1" (
+  echo [ERROR] Missing serve.ps1 next to this bat.
   pause
   exit /b 1
 )
