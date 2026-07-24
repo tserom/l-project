@@ -1,10 +1,10 @@
-# Serves apps/sales-front pack "web" folder with SPA fallback (BrowserRouter).
+# Serves pack "web" folder with SPA fallback. ASCII-only messages for Win PS 5.1.
 $ErrorActionPreference = 'Stop'
 
 $port = 5175
 $webRoot = Join-Path $PSScriptRoot 'web'
 if (-not (Test-Path (Join-Path $webRoot 'index.html'))) {
-  Write-Host "[错误] 未找到 web\index.html"
+  Write-Host '[ERROR] Missing web\index.html'
   exit 1
 }
 
@@ -31,13 +31,13 @@ $listener.Prefixes.Add($prefix)
 try {
   $listener.Start()
 } catch {
-  Write-Host "[错误] 无法监听 $prefix — 端口可能被占用，或需管理员权限。"
+  Write-Host "[ERROR] Cannot listen on $prefix (port in use?)"
   Write-Host $_.Exception.Message
   exit 1
 }
 
-Write-Host "销售单已启动: $prefix"
-Write-Host "关闭本窗口停止服务。"
+Write-Host "sales-front running: $prefix"
+Write-Host 'Close this window to stop.'
 Start-Process $prefix
 
 function Get-ContentType([string]$ext) {
