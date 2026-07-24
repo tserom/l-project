@@ -1,0 +1,108 @@
+.outbound-slip {
+  --slip-width: 190mm;
+  --slip-height: 140mm;
+  width: var(--slip-width);
+  min-height: var(--slip-height);
+  color: #1a3a6b;
+  font-family: 'SimSun', 'Songti SC', 'Noto Serif SC', serif;
+  box-sizing: border-box;
+  padding: 4mm 6mm;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.outbound-slip__title {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 3mm;
+  letter-spacing: 1px;
+}
+
+.outbound-slip__meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2mm;
+  gap: 8mm;
+}
+
+.outbound-slip__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2mm 8mm;
+  margin-bottom: 2mm;
+}
+
+.outbound-slip__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.outbound-slip__table th,
+.outbound-slip__table td {
+  border: 1px solid #1a3a6b;
+  padding: 1.5mm 1mm;
+  vertical-align: middle;
+  height: 7mm;
+}
+
+.outbound-slip__table th {
+  font-weight: 600;
+  text-align: center;
+}
+
+.outbound-slip__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.outbound-slip__totals {
+  display: flex;
+  justify-content: space-between;
+  margin: 2mm 0;
+  padding: 0 1mm;
+}
+
+.outbound-slip__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2mm 10mm;
+  margin-top: 2mm;
+}
+
+.outbound-slip__pickup {
+  margin-top: 3mm;
+}
+
+.outbound-slip__note {
+  margin-top: 3mm;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .ant-layout-content {
+    padding: 0 !important;
+  }
+
+  @page {
+    size: auto;
+    margin: 8mm;
+  }
+
+  body {
+    margin: 0;
+    background: #fff;
+  }
+
+  .outbound-slip {
+    box-shadow: none;
+  }
+}
