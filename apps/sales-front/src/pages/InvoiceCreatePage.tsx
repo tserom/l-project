@@ -8,19 +8,18 @@ import {
   Row,
   Select,
   Space,
-  Table,
   message,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { Dayjs } from 'dayjs'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import InvoiceLinesView from '@/components/InvoiceLinesView'
 import {
   createInvoiceDoc,
   listInvoiceCandidates,
 } from '@/services/invoiceDocApi'
 import type { InvoiceCandidateLine } from '@/types/invoiceDoc'
-import { formatOrderDate } from '@/utils/dateFormat'
 import { parseOrderNos } from '@/utils/filterSalesOrders'
 import { formatAmount, formatQuantity, sumAmounts, sumQuantities } from '@/utils/money'
 
@@ -95,42 +94,7 @@ export default function InvoiceCreatePage() {
     [lines],
   )
 
-  const columns: ColumnsType<InvoiceCandidateLine> = [
-    { title: '物资', dataIndex: 'materialName' },
-    { title: '规格型号', dataIndex: 'spec', width: 100 },
-    { title: '单位', dataIndex: 'unit', width: 60 },
-    {
-      title: '数量',
-      dataIndex: 'quantity',
-      width: 90,
-      align: 'right',
-      render: (v: number) => formatQuantity(v),
-    },
-    {
-      title: '单价',
-      dataIndex: 'unitPrice',
-      width: 90,
-      align: 'right',
-      render: (v: number) => formatQuantity(v),
-    },
-    {
-      title: '金额',
-      dataIndex: 'amount',
-      width: 100,
-      align: 'right',
-      render: (v: number) => formatAmount(v),
-    },
-    { title: '行备注', dataIndex: 'lineRemark', width: 100 },
-    { title: '单据号', dataIndex: 'orderNo', width: 120 },
-    {
-      title: '单据日期',
-      dataIndex: 'orderDate',
-      width: 120,
-      render: (v: string) => formatOrderDate(v),
-    },
-    { title: '客户', dataIndex: 'customerName', width: 140 },
-    { title: '仓库', dataIndex: 'warehouseName', width: 110 },
-    { title: '出库类型', dataIndex: 'deliveryType', width: 90 },
+  const deleteCol: ColumnsType<InvoiceCandidateLine> = [
     {
       title: '',
       width: 70,
@@ -187,34 +151,13 @@ export default function InvoiceCreatePage() {
         </Form>
       </Card>
 
-      <Table
-        rowKey="id"
-        size="small"
-        loading={loading}
-        columns={columns}
-        dataSource={lines}
-        pagination={false}
-        scroll={{ x: 1400 }}
-        summary={() => (
-          <Table.Summary fixed>
-            <Table.Summary.Row>
-              <Table.Summary.Cell index={0} colSpan={3}>
-                合计（{lines.length} 行）
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={1} align="right">
-                {formatQuantity(totals.qty)}
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={2} />
-              <Table.Summary.Cell index={3} align="right">
-                <strong>{formatAmount(totals.amount)}</strong>
-              </Table.Summary.Cell>
-              <Table.Summary.Cell index={4} colSpan={7} />
-            </Table.Summary.Row>
-          </Table.Summary>
-        )}
-      />
+      <InvoiceLinesView lines={lines} detailExtraColumns={deleteCol} />
 
-      <Space style={{ marginTop: 16 }}>
+      <Space style={{ marginTop: 16 }} wrap>
+        <span>
+          明细合计：数量 {formatQuantity(totals.qty)} / 金额{' '}
+          {formatAmount(totals.amount)}（{lines.length} 行）
+        </span>
         <Button type="primary" loading={saving} onClick={() => void onSave()}>
           保存开票单
         </Button>

@@ -1,11 +1,10 @@
-import { Button, Descriptions, Space, Spin, Table, Tag, message } from 'antd'
-import type { ColumnsType } from 'antd/es/table'
+import { Button, Descriptions, Space, Spin, Tag, message } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import InvoiceLinesView from '@/components/InvoiceLinesView'
 import { getInvoiceDoc } from '@/services/invoiceDocApi'
-import type { InvoiceDoc, InvoiceDocLine } from '@/types/invoiceDoc'
-import { formatOrderDate } from '@/utils/dateFormat'
-import { formatAmount, formatQuantity } from '@/utils/money'
+import type { InvoiceDoc } from '@/types/invoiceDoc'
+import { formatAmount } from '@/utils/money'
 
 export default function InvoiceDetailPage() {
   const { id } = useParams()
@@ -37,40 +36,6 @@ export default function InvoiceDetailPage() {
 
   if (loading || !doc) return <Spin />
 
-  const columns: ColumnsType<InvoiceDocLine> = [
-    { title: '物资', dataIndex: 'materialName' },
-    { title: '规格型号', dataIndex: 'spec' },
-    { title: '单位', dataIndex: 'unit', width: 60 },
-    {
-      title: '数量',
-      dataIndex: 'quantity',
-      align: 'right',
-      render: (v: number) => formatQuantity(v),
-    },
-    {
-      title: '单价',
-      dataIndex: 'unitPrice',
-      align: 'right',
-      render: (v: number) => formatQuantity(v),
-    },
-    {
-      title: '金额',
-      dataIndex: 'amount',
-      align: 'right',
-      render: (v: number) => formatAmount(v),
-    },
-    { title: '行备注', dataIndex: 'lineRemark' },
-    { title: '单据号', dataIndex: 'orderNo' },
-    {
-      title: '单据日期',
-      dataIndex: 'orderDate',
-      render: (v: string) => formatOrderDate(v),
-    },
-    { title: '客户', dataIndex: 'customerName' },
-    { title: '仓库', dataIndex: 'warehouseName' },
-    { title: '出库类型', dataIndex: 'deliveryType' },
-  ]
-
   return (
     <div>
       <Space style={{ marginBottom: 16 }}>
@@ -100,14 +65,7 @@ export default function InvoiceDetailPage() {
           {formatAmount(doc.totalAmount)}
         </Descriptions.Item>
       </Descriptions>
-      <Table
-        rowKey="id"
-        size="small"
-        columns={columns}
-        dataSource={doc.lines}
-        pagination={false}
-        scroll={{ x: 1200 }}
-      />
+      <InvoiceLinesView lines={doc.lines} />
     </div>
   )
 }

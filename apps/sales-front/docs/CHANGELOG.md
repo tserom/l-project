@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-07-28 — 开票单合并视图
+
+**类型**：功能  
+**分支**：`feature/sales-front`
+
+### 变更说明
+
+开票单明细支持「明细视图 / 合并视图」切换：物资 + 规格型号 + 单价相同则合并，数量相加、金额按数量×单价重算；来源单据信息去重后拼接展示。
+
+### 涉及文件
+
+- `src/utils/mergeInvoiceLines.ts`、`mergeInvoiceLines.test.ts`
+- `src/components/InvoiceLinesView.tsx`
+- `src/pages/InvoiceDetailPage.tsx`、`InvoiceCreatePage.tsx`
+
+---
+
 ## 2026-07-28 — 开票单（明细需开票 + 汇总开票）
 
 **类型**：功能  
