@@ -24,6 +24,10 @@ make pack-sales-front-windows
 
 对方：解压 → 双击 `start-sales.bat`（无需安装 Node）。说明见包内 `README.txt`。
 
+## 修改记录
+
+见 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。
+
 ## 路由
 
 | 路径 | 说明 |
