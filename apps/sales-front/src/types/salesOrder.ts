@@ -7,7 +7,12 @@ export interface SalesOrderLine {
   unitPrice: number
   amount: number
   lineRemark?: string
+  /** 是否需开票；默认 false */
+  needInvoice: boolean
+  /** 已挂开票单（未作废）时有值 */
+  invoiceDocId?: string
 }
+
 
 export interface SalesOrder {
   id: string

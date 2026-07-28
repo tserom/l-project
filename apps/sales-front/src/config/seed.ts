@@ -17,6 +17,7 @@ export const seedSalesOrders: SalesOrder[] = [
         quantity: 784,
         unitPrice: 6.9,
         amount: 5409.6,
+        needInvoice: false,
       },
     ],
     totalQuantity: 784,

@@ -16,11 +16,20 @@ import {
 } from '@/utils/money'
 import * as repo from '@/storage/salesOrderRepository'
 
-function normalizeLines(lines: SalesOrderLine[]): SalesOrderLine[] {
-  return lines.map((line) => ({
-    ...line,
-    amount: calcLineAmount(line.quantity, line.unitPrice),
-  }))
+function normalizeLines(
+  lines: SalesOrderLine[],
+  existingLines?: SalesOrderLine[],
+): SalesOrderLine[] {
+  const prevById = new Map((existingLines ?? []).map((l) => [l.id, l]))
+  return lines.map((line) => {
+    const prev = prevById.get(line.id)
+    return {
+      ...line,
+      amount: calcLineAmount(line.quantity, line.unitPrice),
+      needInvoice: Boolean(line.needInvoice),
+      invoiceDocId: line.invoiceDocId ?? prev?.invoiceDocId,
+    }
+  })
 }
 
 function validateInput(input: SalesOrderInput): void {
@@ -45,8 +54,9 @@ function buildOrder(
   input: SalesOrderInput,
   createdAt: string,
   updatedAt: string,
+  existingLines?: SalesOrderLine[],
 ): SalesOrder {
-  const lines = normalizeLines(input.lines)
+  const lines = normalizeLines(input.lines, existingLines)
   return {
     id,
     orderNo: input.orderNo,
@@ -63,8 +73,19 @@ function buildOrder(
   }
 }
 
+function hydrateOrder(order: SalesOrder): SalesOrder {
+  return {
+    ...order,
+    lines: order.lines.map((line) => ({
+      ...line,
+      needInvoice: Boolean(line.needInvoice),
+    })),
+  }
+}
+
 export async function listSalesOrders(): Promise<SalesOrder[]> {
-  return repo.listAll()
+  const list = await repo.listAll()
+  return list.map(hydrateOrder)
 }
 
 export async function getSalesOrder(id: string): Promise<SalesOrder> {
@@ -72,7 +93,7 @@ export async function getSalesOrder(id: string): Promise<SalesOrder> {
   if (!order) {
     throw new Error('销售单不存在')
   }
-  return order
+  return hydrateOrder(order)
 }
 
 export async function createSalesOrder(input: SalesOrderInput): Promise<SalesOrder> {
@@ -92,7 +113,13 @@ export async function updateSalesOrder(
   if (!existing) {
     throw new Error('销售单不存在')
   }
-  const order = buildOrder(id, input, existing.createdAt, new Date().toISOString())
+  const order = buildOrder(
+    id,
+    input,
+    existing.createdAt,
+    new Date().toISOString(),
+    existing.lines,
+  )
   await repo.put(order)
   return order
 }

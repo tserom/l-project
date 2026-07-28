@@ -19,6 +19,7 @@ function emptyLine() {
     quantity: 0,
     unitPrice: 0,
     amount: 0,
+    needInvoice: false,
   }
 }
 

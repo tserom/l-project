@@ -1,4 +1,4 @@
-import { Button, Input, InputNumber, Space, Table } from 'antd'
+import { Button, Checkbox, Input, InputNumber, Space, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useRef, useState } from 'react'
 import type { SalesOrderLine } from '@/types/salesOrder'
@@ -151,6 +151,25 @@ export default function OrderLinesTable({ value, onChange }: Props) {
       render: (v: number) => formatAmount(v),
     },
     {
+      title: '需开票',
+      dataIndex: 'needInvoice',
+      width: 88,
+      align: 'center',
+      render: (_, row) =>
+        row.invoiceDocId ? (
+          <Tag color="blue">已开票</Tag>
+        ) : (
+          <Checkbox
+            checked={Boolean(row.needInvoice)}
+            onChange={(e) =>
+              onChange(
+                updateLine(value, row.id, { needInvoice: e.target.checked }),
+              )
+            }
+          />
+        ),
+    },
+    {
       title: '备注',
       dataIndex: 'lineRemark',
       width: 120,
@@ -170,7 +189,7 @@ export default function OrderLinesTable({ value, onChange }: Props) {
         <Button
           type="link"
           danger
-          disabled={value.length <= 1}
+          disabled={value.length <= 1 || Boolean(row.invoiceDocId)}
           onClick={() => onChange(value.filter((l) => l.id !== row.id))}
         >
           删除
@@ -187,6 +206,7 @@ export default function OrderLinesTable({ value, onChange }: Props) {
         pagination={false}
         columns={columns}
         dataSource={value}
+        scroll={{ x: 1100 }}
       />
       <Space style={{ marginTop: 12 }} wrap>
         <Button
@@ -201,6 +221,7 @@ export default function OrderLinesTable({ value, onChange }: Props) {
                 quantity: 0,
                 unitPrice: 0,
                 amount: 0,
+                needInvoice: false,
               },
             ])
           }

@@ -1,5 +1,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import App from './App'
+import InvoiceCreatePage from './pages/InvoiceCreatePage'
+import InvoiceDetailPage from './pages/InvoiceDetailPage'
+import InvoiceListPage from './pages/InvoiceListPage'
 import OrderEditPage from './pages/OrderEditPage'
 import OrderListPage from './pages/OrderListPage'
 import OrderPrintPage from './pages/OrderPrintPage'
@@ -13,6 +16,9 @@ export function AppRoutes() {
         <Route path="orders/new" element={<OrderEditPage />} />
         <Route path="orders/:id" element={<OrderEditPage />} />
         <Route path="orders/:id/print" element={<OrderPrintPage />} />
+        <Route path="invoices" element={<InvoiceListPage />} />
+        <Route path="invoices/new" element={<InvoiceCreatePage />} />
+        <Route path="invoices/:id" element={<InvoiceDetailPage />} />
       </Route>
     </Routes>
   )

@@ -25,6 +25,7 @@ const validInput = {
       quantity: 784,
       unitPrice: 6.9,
       amount: 0,
+      needInvoice: false,
     },
   ],
 }
