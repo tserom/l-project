@@ -29,7 +29,7 @@ import {
   filterSalesOrders,
   parseOrderNos,
 } from '@/utils/filterSalesOrders'
-import { formatAmount, formatQuantity } from '@/utils/money'
+import { formatAmount, formatQuantity, sumAmounts } from '@/utils/money'
 
 type QueryForm = {
   orderNos?: string[]
@@ -196,6 +196,24 @@ export default function OrderListPage() {
           ),
         }}
         pagination={false}
+        summary={() => {
+          const totalAmount = sumAmounts(
+            filtered.map((o) => ({ amount: o.totalAmount })),
+          )
+          return (
+            <Table.Summary fixed>
+              <Table.Summary.Row>
+                <Table.Summary.Cell index={0} colSpan={6}>
+                  合计
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={1} align="right">
+                  <strong>{formatAmount(totalAmount)}</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={2} />
+              </Table.Summary.Row>
+            </Table.Summary>
+          )
+        }}
       />
     </div>
   )
