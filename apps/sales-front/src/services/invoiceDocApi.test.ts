@@ -75,7 +75,7 @@ describe('createInvoiceDoc / voidInvoiceDoc', () => {
       orderNo: 'T001',
       orderDate: '2026-07-10',
       customerName: '客户乙',
-      warehouseName: '01金阳仓库',
+      warehouseName: '中大慧科',
       deliveryType: '提货',
       lines: [
         {

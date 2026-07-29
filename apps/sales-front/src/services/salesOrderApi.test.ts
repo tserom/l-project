@@ -12,7 +12,7 @@ const validInput = {
   orderNo: '00150262',
   orderDate: '2026-07-22',
   customerName: '884周村 马俊生',
-  warehouseName: '01金阳仓库',
+  warehouseName: '中大慧科',
   deliveryType: '提货',
   lines: [
     {

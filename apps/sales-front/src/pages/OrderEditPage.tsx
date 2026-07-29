@@ -37,7 +37,7 @@ export default function OrderEditPage() {
         orderNo: generateOrderNo(),
         orderDate: dayjs(),
         customerName: '',
-        warehouseName: '01金阳仓库',
+        warehouseName: '中大慧科',
         deliveryType: '提货',
         remark: '',
         lines: [emptyLine()],

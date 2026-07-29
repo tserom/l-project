@@ -335,7 +335,7 @@ export const defaultPrintProfile: PrintProfile = {
 
 - [ ] **Step 2: 写入种子销售单**
 
-`seed.ts` 一条 `SalesOrder`：单据号 `00150262`、客户 `884周村 马俊生`、仓库 `01金阳仓库`、出库类型 `提货`、一行 `002024-2Cr13黑棒` / `Φ 32` / `kg` / `784` / `6.9` / `5409.6`。固定 `id: 'seed-1'`，便于幂等。
+`seed.ts` 一条 `SalesOrder`：单据号 `00150262`、客户 `884周村 马俊生`、仓库 `中大慧科`、出库类型 `提货`、一行 `002024-2Cr13黑棒` / `Φ 32` / `kg` / `784` / `6.9` / `5409.6`。固定 `id: 'seed-1'`，便于幂等。
 
 - [ ] **Step 3: Commit**
 
@@ -401,7 +401,7 @@ const validInput = {
   orderNo: '00150262',
   orderDate: '2026-07-22',
   customerName: '884周村 马俊生',
-  warehouseName: '01金阳仓库',
+  warehouseName: '中大慧科',
   deliveryType: '提货',
   lines: [
     {
