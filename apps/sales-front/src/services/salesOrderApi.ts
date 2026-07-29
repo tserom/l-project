@@ -6,7 +6,6 @@
  * | 新建 | createSalesOrder | 同上 |
  * | 更新 | updateSalesOrder | 同上 |
  * | 删除 | removeSalesOrder | 同上 |
- * | 种子 | ensureSeedData | 仅空库 |
  */
 import type { SalesOrder, SalesOrderInput, SalesOrderLine } from '@/types/salesOrder'
 import {
@@ -126,14 +125,4 @@ export async function updateSalesOrder(
 
 export async function removeSalesOrder(id: string): Promise<void> {
   await repo.remove(id)
-}
-
-export async function ensureSeedData(seeds: SalesOrder[]): Promise<void> {
-  if ((await repo.count()) > 0) {
-    return
-  }
-  if (seeds.length === 0) {
-    return
-  }
-  await repo.putMany(seeds)
 }

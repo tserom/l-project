@@ -17,9 +17,7 @@ import type { ColumnsType } from 'antd/es/table'
 import type { Dayjs } from 'dayjs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { seedSalesOrders } from '@/config/seed'
 import {
-  ensureSeedData,
   listSalesOrders,
   removeSalesOrder,
 } from '@/services/salesOrderApi'
@@ -47,7 +45,6 @@ export default function OrderListPage() {
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      await ensureSeedData(seedSalesOrders)
       setOrders(await listSalesOrders())
     } catch (e) {
       message.error(e instanceof Error ? e.message : '加载失败')

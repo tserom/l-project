@@ -1,9 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { seedSalesOrders } from '@/config/seed'
 import { db } from '@/storage/db'
 import {
   createSalesOrder,
-  ensureSeedData,
   getSalesOrder,
   listSalesOrders,
   removeSalesOrder,
@@ -53,11 +51,5 @@ describe('salesOrderApi', () => {
     await expect(
       createSalesOrder({ ...validInput, customerName: '  ' }),
     ).rejects.toThrow(/客户/)
-  })
-
-  it('ensureSeedData only when empty', async () => {
-    await ensureSeedData(seedSalesOrders)
-    await ensureSeedData(seedSalesOrders)
-    expect(await listSalesOrders()).toHaveLength(seedSalesOrders.length)
   })
 })
