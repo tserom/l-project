@@ -20,6 +20,9 @@
 | `scripts/pack/` | **Mac / Windows 打包脚本** |
 | `scripts/mysql/` | 建库 SQL |
 | `docs/windows-deployment.md` | Windows 部署与 API 清单 |
+| `docs/domain-sales.md` | 销售单 / 开票单领域设计（`apps/sales-front`） |
+| `docs/api-sales-storage.md` | 销售单 Api 与 IndexedDB（Dexie）用法 |
+| `apps/sales-front/` | 销售开票本地工具（IndexedDB，与库存未打通） |
 
 各子服务详见：`apps/stock-center/README.md`、`apps/stock-manage/README.md`、`apps/stock-front/README.md`。
 

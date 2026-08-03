@@ -36,6 +36,11 @@ make pack-sales-front-windows
 | `/orders/new` | 新建 |
 | `/orders/:id` | 编辑 |
 | `/orders/:id/print` | 预览打印 |
+| `/invoices` | 开票单列表 |
+| `/invoices/new` | 新建开票单 |
+| `/invoices/:id` | 开票单详情 |
+
+领域设计摘要见 [`docs/domain-sales.md`](../../docs/domain-sales.md)；接口与 IndexedDB 见 [`docs/api-sales-storage.md`](../../docs/api-sales-storage.md)。
 
 ## 打印
 
