@@ -5,12 +5,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-# Ensure standard POSIX bin dirs are present. When this script is launched from a
-# Windows-native `make` (GnuWin32), the child bash may inherit a stripped PATH and
-# fail to locate zip/python3. Prepending these keeps macOS and WSL/Windows behavior
-# consistent.
-export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
-
 DIST_DIR="$ROOT/dist"
 STAGING_PARENT="$DIST_DIR/.pack-staging-sales-front"
 STAGING="$STAGING_PARENT/sales-front-windows"
