@@ -64,6 +64,7 @@ function buildOrder(
     warehouseName: input.warehouseName,
     deliveryType: input.deliveryType,
     remark: input.remark,
+    outstandingBalance: input.outstandingBalance,
     lines,
     totalQuantity: sumQuantities(lines),
     totalAmount: sumAmounts(lines),

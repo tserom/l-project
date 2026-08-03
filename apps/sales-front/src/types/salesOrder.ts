@@ -22,6 +22,8 @@ export interface SalesOrder {
   warehouseName: string
   deliveryType: string
   remark?: string
+  /** 往来欠款（手工填写；空表示未填，打印时不展示） */
+  outstandingBalance?: string
   lines: SalesOrderLine[]
   totalQuantity: number
   totalAmount: number

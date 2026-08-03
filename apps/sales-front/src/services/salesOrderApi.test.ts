@@ -52,4 +52,13 @@ describe('salesOrderApi', () => {
       createSalesOrder({ ...validInput, customerName: '  ' }),
     ).rejects.toThrow(/客户/)
   })
+
+  it('persists outstandingBalance', async () => {
+    const created = await createSalesOrder({
+      ...validInput,
+      outstandingBalance: '100',
+    })
+    expect(created.outstandingBalance).toBe('100')
+    expect((await getSalesOrder(created.id)).outstandingBalance).toBe('100')
+  })
 })

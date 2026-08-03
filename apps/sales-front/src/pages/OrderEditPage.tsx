@@ -40,6 +40,7 @@ export default function OrderEditPage() {
         warehouseName: '中大慧科',
         deliveryType: '提货',
         remark: '',
+        outstandingBalance: '',
         lines: [emptyLine()],
       })
       return
@@ -59,6 +60,7 @@ export default function OrderEditPage() {
             warehouseName: order.warehouseName,
             deliveryType: order.deliveryType,
             remark: order.remark,
+            outstandingBalance: order.outstandingBalance,
             lines: order.lines,
           }),
         )
@@ -90,6 +92,7 @@ export default function OrderEditPage() {
         warehouseName: values.warehouseName,
         deliveryType: values.deliveryType,
         remark: values.remark,
+        outstandingBalance: values.outstandingBalance,
         lines: values.lines,
       }
       if (isNew) {

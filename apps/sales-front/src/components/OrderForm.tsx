@@ -10,6 +10,7 @@ export type OrderFormValues = {
   warehouseName: string
   deliveryType: string
   remark?: string
+  outstandingBalance?: string
   lines: SalesOrderLine[]
 }
 
@@ -65,6 +66,11 @@ export default function OrderForm({ form }: Props) {
             <Input />
           </Form.Item>
         </Col>
+        <Col xs={24} md={8}>
+          <Form.Item name="outstandingBalance" label="往来欠款">
+            <Input />
+          </Form.Item>
+        </Col>
       </Row>
       <Form.Item name="lines" hidden>
         <Input />
@@ -87,6 +93,7 @@ export function toFormValues(input: {
   warehouseName: string
   deliveryType: string
   remark?: string
+  outstandingBalance?: string
   lines: SalesOrderLine[]
 }): OrderFormValues {
   return {
