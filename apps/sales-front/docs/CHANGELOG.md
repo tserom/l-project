@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-08-08 — 切换至 sales-manage（MySQL）
+
+**类型**：架构  
+**分支**：`feature/sales-front`
+
+### 变更说明
+
+- 持久化改为独立后端 `apps/sales-manage`（`:8083` / 库 `sales_manage`）
+- 销售单 + 开票单全部走 `/api/v1/sale/*`；列表筛选 `qp-*` 由后端处理
+- 移除 Dexie / IndexedDB 写路径；Vite 代理 `/api` → `8083`
+- 历史 IndexedDB 导入脚本第二期；与库存 `stock-manage` `/sales-orders` 无关
+
+---
+
 ## 2026-07-29 — 去掉自动种子销售单
 
 **类型**：清理  

@@ -1,10 +1,10 @@
 # 销售单领域设计（sales-front）
 
-> 录入日期：2026-08-03（按 `apps/sales-front` 现码整理）  
+> 录入日期：2026-08-03；**2026-08-08** 更新为 MySQL + `sales-manage`  
 > 定位：**当前实现真源摘要**；早期决策稿见文末「历史设计稿」  
-> 代码路径：`apps/sales-front`  
-> 接口 / IndexedDB：[`api-sales-storage.md`](./api-sales-storage.md)  
-> 持久化路线：现阶段 IndexedDB → 计划 MySQL+Go（kb `local-first-to-go-mysql.md`）
+> 代码路径：`apps/sales-front` + `apps/sales-manage`  
+> 接口：[`api-sales-storage.md`](./api-sales-storage.md)  
+> kb：`domains/personal-go/sales-manage-api.md`
 
 ---
 
@@ -14,11 +14,11 @@
 
 | 项 | 事实 |
 |----|------|
-| 运行形态 | 纯前端（Vite + React 19 + antd 6 + Dexie） |
-| 持久化 | 浏览器 IndexedDB（库名 `sales-front`），无后端 |
-| 与库存仓 | 与 `stock-center` / `stock-manage` / `stock-front` **无运行时依赖** |
-| 分发 | `make pack-sales-front-windows` → `dist/sales-front-windows.zip`（静态页 + bat 起本地服务） |
-| 开发 | `make dev-sales-front` 或 `cd apps/sales-front && pnpm dev` → `http://localhost:5175` |
+| 运行形态 | 前端 Vite + React 19 + antd 6；后端 Gin + GORM + MySQL |
+| 持久化 | `sales-manage`（:8083，库 `sales_manage`）；**不再**用 IndexedDB |
+| 与库存仓 | 与 `stock-center` / `stock-manage` **无业务打通**（勿混用 `/sales-orders`） |
+| 分发 | `make pack-sales-front-windows`（静态包仍需可访问的后端） |
+| 开发 | `make dev-sales-manage` + `make dev-sales-front` → `http://localhost:5175` |
 
 **核心决策（已落地）**：业务实体是**销售单**；打印只是套用纸质**出库单**版式。本应用内没有独立的「出库/发货」实体。
 
@@ -32,24 +32,22 @@
 Pages（列表 / 编辑 / 打印 / 开票）
         │
         ▼
-  salesOrderApi / invoiceDocApi   ← 外形像服务层，页面不直连 DB
+  salesOrderApi / invoiceDocApi → httpClient → /api/v1/sale/*
         │
         ▼
-  Repository → Dexie IndexedDB
+  sales-manage（Gin）→ MySQL
         │
 Print：SalesOrder + PrintProfile（常量）→ OutboundSlip DOM + @media print
 ```
 
 | 层 | 职责 | 主要路径 |
 |----|------|----------|
-| pages | 路由页面 | `src/pages/*` |
+| pages | 路由页面 | `apps/sales-front/src/pages/*` |
 | components | 表单、明细表、打印件 | `src/components/*` |
-| services | 校验、合计、事务编排 | `src/services/*Api.ts` |
-| storage | Dexie schema + put/get | `src/storage/*` |
+| services | HTTP Api | `src/services/*Api.ts` |
 | types | 领域类型 | `src/types/*` |
 | config | 打印档案常量 | `src/config/printProfile.ts` |
-
-换真后端时：优先替换 `*Api.ts` / Repository；页面与 `OutboundSlip` 可不动。
+| backend | 校验、合计、开票事务 | `apps/sales-manage/internal/*` |
 
 ---
 

@@ -1,129 +1,80 @@
 /**
  * 入口索引
- * | 动作 | 函数 | 存储 |
- * | 列表 | listSalesOrders | IndexedDB salesOrders |
- * | 详情 | getSalesOrder | 同上 |
- * | 新建 | createSalesOrder | 同上 |
- * | 更新 | updateSalesOrder | 同上 |
- * | 删除 | removeSalesOrder | 同上 |
+ * | 动作 | 函数 | HTTP |
+ * | 列表 | listSalesOrders | GET /api/v1/sale/orders |
+ * | 详情 | getSalesOrder | GET /api/v1/sale/orders/:id |
+ * | 新建 | createSalesOrder | POST /api/v1/sale/orders |
+ * | 更新 | updateSalesOrder | PUT /api/v1/sale/orders/:id |
+ * | 删除 | removeSalesOrder | DELETE /api/v1/sale/orders/:id |
  */
-import type { SalesOrder, SalesOrderInput, SalesOrderLine } from '@/types/salesOrder'
-import {
-  calcLineAmount,
-  sumAmounts,
-  sumQuantities,
-} from '@/utils/money'
-import * as repo from '@/storage/salesOrderRepository'
+import type { SalesOrder, SalesOrderInput } from '@/types/salesOrder'
+import { request, withQuery, type PageResult } from './httpClient'
 
-function normalizeLines(
-  lines: SalesOrderLine[],
-  existingLines?: SalesOrderLine[],
-): SalesOrderLine[] {
-  const prevById = new Map((existingLines ?? []).map((l) => [l.id, l]))
-  return lines.map((line) => {
-    const prev = prevById.get(line.id)
-    return {
-      ...line,
-      amount: calcLineAmount(line.quantity, line.unitPrice),
-      needInvoice: Boolean(line.needInvoice),
-      invoiceDocId: line.invoiceDocId ?? prev?.invoiceDocId,
-    }
-  })
-}
+const BASE = '/api/v1/sale/orders'
 
-function validateInput(input: SalesOrderInput): void {
-  if (!input.customerName.trim()) {
-    throw new Error('客户不能为空')
-  }
-  if (!input.lines.length) {
-    throw new Error('至少需要一行明细')
-  }
-  for (const line of input.lines) {
-    if (line.quantity < 0) {
-      throw new Error('数量不能为负数')
-    }
-    if (line.unitPrice < 0) {
-      throw new Error('单价不能为负数')
-    }
-  }
-}
-
-function buildOrder(
-  id: string,
-  input: SalesOrderInput,
-  createdAt: string,
-  updatedAt: string,
-  existingLines?: SalesOrderLine[],
-): SalesOrder {
-  const lines = normalizeLines(input.lines, existingLines)
-  return {
-    id,
-    orderNo: input.orderNo,
-    orderDate: input.orderDate,
-    customerName: input.customerName.trim(),
-    warehouseName: input.warehouseName,
-    deliveryType: input.deliveryType,
-    remark: input.remark,
-    outstandingBalance: input.outstandingBalance,
-    lines,
-    totalQuantity: sumQuantities(lines),
-    totalAmount: sumAmounts(lines),
-    createdAt,
-    updatedAt,
-  }
+export type ListSalesOrdersQuery = {
+  orderNos?: string[]
+  dateFrom?: string
+  dateTo?: string
+  customerName?: string
+  page?: number
+  pageSize?: number
 }
 
 function hydrateOrder(order: SalesOrder): SalesOrder {
   return {
     ...order,
-    lines: order.lines.map((line) => ({
+    lines: (order.lines ?? []).map((line) => ({
       ...line,
       needInvoice: Boolean(line.needInvoice),
     })),
   }
 }
 
-export async function listSalesOrders(): Promise<SalesOrder[]> {
-  const list = await repo.listAll()
-  return list.map(hydrateOrder)
+export async function listSalesOrders(
+  query: ListSalesOrdersQuery = {},
+): Promise<PageResult<SalesOrder>> {
+  const orderNos = (query.orderNos ?? []).map((n) => n.trim()).filter(Boolean)
+  const path = withQuery(BASE, {
+    'qp-customerName-like': query.customerName?.trim() || undefined,
+    'qp-orderNo-in': orderNos.length ? orderNos.join(',') : undefined,
+    'qp-orderDate-gte': query.dateFrom?.trim() || undefined,
+    'qp-orderDate-lte': query.dateTo?.trim() || undefined,
+    page: query.page ?? 1,
+    pageSize: query.pageSize ?? 100,
+  })
+  const data = await request<PageResult<SalesOrder>>(path)
+  return {
+    ...data,
+    list: (data.list ?? []).map(hydrateOrder),
+  }
 }
 
 export async function getSalesOrder(id: string): Promise<SalesOrder> {
-  const order = await repo.getById(id)
-  if (!order) {
-    throw new Error('销售单不存在')
-  }
-  return hydrateOrder(order)
+  return hydrateOrder(await request<SalesOrder>(`${BASE}/${id}`))
 }
 
 export async function createSalesOrder(input: SalesOrderInput): Promise<SalesOrder> {
-  validateInput(input)
-  const now = new Date().toISOString()
-  const order = buildOrder(crypto.randomUUID(), input, now, now)
-  await repo.put(order)
-  return order
+  return hydrateOrder(
+    await request<SalesOrder>(BASE, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    }),
+  )
 }
 
 export async function updateSalesOrder(
   id: string,
   input: SalesOrderInput,
 ): Promise<SalesOrder> {
-  validateInput(input)
-  const existing = await repo.getById(id)
-  if (!existing) {
-    throw new Error('销售单不存在')
-  }
-  const order = buildOrder(
-    id,
-    input,
-    existing.createdAt,
-    new Date().toISOString(),
-    existing.lines,
+  return hydrateOrder(
+    await request<SalesOrder>(`${BASE}/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    }),
   )
-  await repo.put(order)
-  return order
 }
 
 export async function removeSalesOrder(id: string): Promise<void> {
-  await repo.remove(id)
+  await request<{ ok: boolean }>(`${BASE}/${id}`, { method: 'DELETE' })
 }
