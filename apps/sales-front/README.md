@@ -25,7 +25,15 @@ Vite 已将 `/api` 代理到 `http://127.0.0.1:8083`。
 
 ## 发给别人（Windows 运行包）
 
-`make pack-sales-front-windows` 仍打静态包；对方机器还需可访问的 `sales-manage` + MySQL（或后续再做一体打包）。说明见包内 `README.txt`（待同步时改）。
+对方需已装 MySQL。在开发机（Mac/Linux 也可交叉编译）：
+
+```bash
+make pack-sales-front-windows
+# → dist/sales-front-windows.zip
+```
+
+包内含：静态前端 + `sales-manage.exe` + `.env` + 启动脚本。  
+对方：建库 `sales_manage` → 改 `.env` 密码 → 双击 `start-sales.bat` → `http://127.0.0.1:5175`（`/api` 由 serve 反代到 8083）。
 
 ## 修改记录
 

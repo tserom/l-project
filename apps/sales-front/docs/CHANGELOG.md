@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-08-09 — Windows 一体包含 sales-manage.exe
+
+**类型**：打包  
+**分支**：`feature/sales-front`
+
+### 变更说明
+
+- `make pack-sales-front-windows` 打入 `sales-manage.exe` + `.env`；`serve.ps1` 反代 `/api` 并拉起后端
+- 对方需自备 MySQL；解压后改 `.env`、双击 `start-sales.bat`
+
+---
+
 ## 2026-08-08 — 切换至 sales-manage（MySQL）
 
 **类型**：架构  

@@ -17,7 +17,7 @@
 | 运行形态 | 前端 Vite + React 19 + antd 6；后端 Gin + GORM + MySQL |
 | 持久化 | `sales-manage`（:8083，库 `sales_manage`）；**不再**用 IndexedDB |
 | 与库存仓 | 与 `stock-center` / `stock-manage` **无业务打通**（勿混用 `/sales-orders`） |
-| 分发 | `make pack-sales-front-windows`（静态包仍需可访问的后端） |
+| 分发 | `make pack-sales-front-windows` → zip（静态页 + `sales-manage.exe`；对方自备 MySQL） |
 | 开发 | `make dev-sales-manage` + `make dev-sales-front` → `http://localhost:5175` |
 
 **核心决策（已落地）**：业务实体是**销售单**；打印只是套用纸质**出库单**版式。本应用内没有独立的「出库/发货」实体。
