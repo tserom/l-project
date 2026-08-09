@@ -44,27 +44,26 @@ function Proxy-ToApi($ctx) {
   Add-Type -AssemblyName System.Net.Http | Out-Null
   $client = New-Object System.Net.Http.HttpClient
   $client.Timeout = [TimeSpan]::FromSeconds(60)
+  $resp = $null
   try {
     $uri = $apiBase + $ctx.Request.RawUrl
     $method = New-Object System.Net.Http.HttpMethod $ctx.Request.HttpMethod
     $msg = New-Object System.Net.Http.HttpRequestMessage $method, $uri
 
     if ($ctx.Request.HasEntityBody) {
-      $buf = New-Object byte[] $ctx.Request.ContentLength64
-      $read = 0
-      while ($read -lt $buf.Length) {
-        $n = $ctx.Request.InputStream.Read($buf, $read, $buf.Length - $read)
-        if ($n -le 0) { break }
-        $read += $n
-      }
-      if ($read -lt $buf.Length) {
-        $tmp = New-Object byte[] $read
-        [Array]::Copy($buf, $tmp, $read)
-        $buf = $tmp
-      }
-      $msg.Content = New-Object System.Net.Http.ByteArrayContent $buf
+      $ms = New-Object System.IO.MemoryStream
+      $ctx.Request.InputStream.CopyTo($ms)
+      $buf = $ms.ToArray()
+      # ,@ keeps the byte[] as one argument (PowerShell otherwise splat-unpacks it).
+      $msg.Content = New-Object System.Net.Http.ByteArrayContent @(, $buf)
       if ($ctx.Request.ContentType) {
-        $msg.Content.Headers.TryAddWithoutValidation('Content-Type', $ctx.Request.ContentType) | Out-Null
+        # ByteArrayContent may already have Content-Type; replace instead of duplicate.
+        $null = $msg.Content.Headers.Remove('Content-Type')
+        try {
+          $msg.Content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse($ctx.Request.ContentType)
+        } catch {
+          $null = $msg.Content.Headers.TryAddWithoutValidation('Content-Type', $ctx.Request.ContentType)
+        }
       }
     }
 
@@ -80,7 +79,18 @@ function Proxy-ToApi($ctx) {
     if ($bytes.Length -gt 0) {
       $ctx.Response.OutputStream.Write($bytes, 0, $bytes.Length)
     }
+  } catch {
+    Write-Host ("[ERROR] API proxy failed: {0}" -f $_.Exception.Message)
+    try {
+      $ctx.Response.StatusCode = 500
+      $payload = @{ code = 50000; message = ('API proxy failed: ' + $_.Exception.Message) } | ConvertTo-Json -Compress
+      $errBytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
+      $ctx.Response.ContentType = 'application/json; charset=utf-8'
+      $ctx.Response.ContentLength64 = $errBytes.Length
+      $ctx.Response.OutputStream.Write($errBytes, 0, $errBytes.Length)
+    } catch {}
   } finally {
+    if ($null -ne $resp) { $resp.Dispose() }
     $client.Dispose()
   }
 }
