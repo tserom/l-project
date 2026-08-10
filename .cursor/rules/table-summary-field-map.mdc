@@ -1,0 +1,43 @@
+---
+description: 表格/导出合计按字段 key 映射，禁止 colSpan/下标数格子；前后端一致
+alwaysApply: false
+globs:
+  - **/*List*.tsx
+  - **/*export*.{ts,tsx}
+  - **/*Export*.{ts,tsx}
+  - **/*xlsx*.{ts,tsx}
+  - **/handler/**/*.go
+  - **/service/**/*.go
+---
+
+# 合计按字段映射（禁止数格子）
+
+实现或修改 **列表 summary、Excel/CSV 导出末行、后端汇总字段** 时**默认遵守**。
+
+人读完整版：[table-summary-field-map.md](../docs/standards/table-summary-field-map.md)
+
+---
+
+## 一句话
+
+合计用 **公开字段名 / 列 key** 对齐；❌ 不要用第 N 列、`colSpan={k}`、空字符串占位当对应关系真源。
+
+## MUST
+
+| 场景 | 做法 |
+|------|------|
+| antd `Table.summary`（或同类） | `summaryByColumnKey[field] = …`，再按 `columns` 渲染；勾选/选择列单独空单元格 |
+| 导出 xlsx/csv | `{ key, title }[]` + `byKey` 生成数据行与合计行 |
+| 后端汇总 / 导列 | JSON 或 Excel 列挂 `totalAmount` 等公开字段名，禁止 `totals[6]` |
+
+## MUST NOT
+
+- 手写易碎 `colSpan` 常数对齐金额列（横跨若需要，由 **起止 field key** 推导）
+- 合计行 `['合计','','',…,金额]` 靠下标凑列
+- 前后端用不同下标约定同一业务列
+
+## 自检
+
+- [ ] 加勾选/插列后金额是否仍在金额字段列？
+- [ ] 导出与列表 key 是否一致？
+- [ ] 后端合计是否字段名而非数组下标？
