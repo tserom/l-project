@@ -15,7 +15,7 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { Dayjs } from 'dayjs'
-import { useCallback, useEffect, useState, type Key } from 'react'
+import { useCallback, useEffect, useState, type Key, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   exportSalesOrdersToExcel,
@@ -160,6 +160,16 @@ export default function OrderListPage() {
     },
   ]
 
+  /** 合计行按列 key 填值，与 columns 对齐；勿用手写 colSpan 数格子 */
+  const summaryByColumnKey: Partial<Record<string, ReactNode>> = {
+    orderNo: `合计（本页 ${orders.length} / 共 ${total}）`,
+    totalAmount: (
+      <strong>
+        {formatAmount(sumAmounts(orders.map((o) => ({ amount: o.totalAmount }))))}
+      </strong>
+    ),
+  }
+
   return (
     <div>
       <Space style={{ marginBottom: 16 }}>
@@ -232,19 +242,24 @@ export default function OrderListPage() {
         }}
         pagination={false}
         summary={() => {
-          const totalAmount = sumAmounts(
-            orders.map((o) => ({ amount: o.totalAmount })),
-          )
+          let cellIndex = 0
           return (
             <Table.Summary fixed>
               <Table.Summary.Row>
-                <Table.Summary.Cell index={0} colSpan={6}>
-                  合计（本页 {orders.length} / 共 {total}）
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={1} align="right">
-                  <strong>{formatAmount(totalAmount)}</strong>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={2} />
+                {/* rowSelection 占位列，无业务 key */}
+                <Table.Summary.Cell index={cellIndex++} />
+                {columns.map((col) => {
+                  const key = String(col.key ?? col.dataIndex ?? '')
+                  return (
+                    <Table.Summary.Cell
+                      key={key}
+                      index={cellIndex++}
+                      align={col.align}
+                    >
+                      {summaryByColumnKey[key] ?? null}
+                    </Table.Summary.Cell>
+                  )
+                })}
               </Table.Summary.Row>
             </Table.Summary>
           )

@@ -20,9 +20,25 @@ const sample: SalesOrder = {
 }
 
 describe('exportSalesOrdersXlsx', () => {
-  it('maps header and one data row', () => {
-    expect(salesOrdersToSheetRows([sample])).toEqual([
+  it('maps header, data rows, and amount summary', () => {
+    const another: SalesOrder = {
+      ...sample,
+      id: '2',
+      orderNo: '202608104282',
+      totalQuantity: 1,
+      totalAmount: 91,
+    }
+    expect(salesOrdersToSheetRows([another, sample])).toEqual([
       ['单据号', '日期', '客户', '仓库', '出库类型', '数量合计', '金额合计'],
+      [
+        '202608104282',
+        '2026年8月10日',
+        '客户A',
+        '一号仓',
+        '销售出库',
+        '1.00',
+        '91.00',
+      ],
       [
         '202608109411',
         '2026年8月10日',
@@ -32,6 +48,7 @@ describe('exportSalesOrdersXlsx', () => {
         '784.00',
         '5,409.60',
       ],
+      ['合计', '', '', '', '', '', '5,500.60'],
     ])
   })
 
