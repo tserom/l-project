@@ -249,7 +249,11 @@ export default function OrderListPage() {
                 {/* rowSelection 占位列，无业务 key */}
                 <Table.Summary.Cell index={cellIndex++} />
                 {columns.map((col) => {
-                  const key = String(col.key ?? col.dataIndex ?? '')
+                  const key = String(
+                    col.key ??
+                      ('dataIndex' in col ? col.dataIndex : undefined) ??
+                      '',
+                  )
                   return (
                     <Table.Summary.Cell
                       key={key}
