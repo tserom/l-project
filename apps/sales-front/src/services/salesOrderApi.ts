@@ -6,8 +6,10 @@
  * | 新建 | createSalesOrder | POST /api/v1/sale/orders |
  * | 更新 | updateSalesOrder | PUT /api/v1/sale/orders/:id |
  * | 删除 | removeSalesOrder | DELETE /api/v1/sale/orders/:id |
+ * | 批量导出 | exportSalesOrdersToExcel | GET /api/v1/sale/orders（可能多次；前端写 xlsx） |
  */
 import type { SalesOrder, SalesOrderInput } from '@/types/salesOrder'
+import { downloadSalesOrdersXlsx } from '@/utils/exportSalesOrdersXlsx'
 import { request, withQuery, type PageResult } from './httpClient'
 
 const BASE = '/api/v1/sale/orders'
@@ -77,4 +79,40 @@ export async function updateSalesOrder(
 
 export async function removeSalesOrder(id: string): Promise<void> {
   await request<{ ok: boolean }>(`${BASE}/${id}`, { method: 'DELETE' })
+}
+
+export type ExportSalesOrdersResult =
+  | { ok: true }
+  | { ok: false; reason: 'empty' }
+
+async function listAllSalesOrdersForExport(
+  query: ListSalesOrdersQuery = {},
+): Promise<SalesOrder[]> {
+  const pageSize = 500
+  let page = 1
+  const all: SalesOrder[] = []
+  let total = Infinity
+  while (all.length < total) {
+    const result = await listSalesOrders({ ...query, page, pageSize })
+    total = result.total
+    if (!result.list.length) break
+    all.push(...result.list)
+    page += 1
+  }
+  return all
+}
+
+/** L3：勾选优先；否则按筛选分页拉全，前端生成汇总 xlsx */
+export async function exportSalesOrdersToExcel(input: {
+  selectedOrders?: SalesOrder[]
+  query?: ListSalesOrdersQuery
+}): Promise<ExportSalesOrdersResult> {
+  const selected = input.selectedOrders ?? []
+  const rows =
+    selected.length > 0
+      ? selected
+      : await listAllSalesOrdersForExport(input.query ?? {})
+  if (rows.length === 0) return { ok: false, reason: 'empty' }
+  downloadSalesOrdersXlsx(rows)
+  return { ok: true }
 }

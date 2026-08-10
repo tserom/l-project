@@ -15,9 +15,10 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { Dayjs } from 'dayjs'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type Key } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  exportSalesOrdersToExcel,
   listSalesOrders,
   removeSalesOrder,
 } from '@/services/salesOrderApi'
@@ -36,9 +37,11 @@ export default function OrderListPage() {
   const navigate = useNavigate()
   const [form] = Form.useForm<QueryForm>()
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
   const [orders, setOrders] = useState<SalesOrder[]>([])
   const [total, setTotal] = useState(0)
   const [applied, setApplied] = useState<QueryForm>({})
+  const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([])
 
   const reload = useCallback(async (query: QueryForm) => {
     setLoading(true)
@@ -54,6 +57,7 @@ export default function OrderListPage() {
       })
       setOrders(result.list)
       setTotal(result.total)
+      setSelectedRowKeys([])
     } catch (e) {
       message.error(e instanceof Error ? e.message : '加载失败')
     } finally {
@@ -75,6 +79,32 @@ export default function OrderListPage() {
     form.resetFields()
     setApplied({})
     void reload({})
+  }
+
+  const onExport = async () => {
+    setExporting(true)
+    try {
+      const selectedOrders = orders.filter((o) => selectedRowKeys.includes(o.id))
+      const range = applied.dateRange
+      const result = await exportSalesOrdersToExcel({
+        selectedOrders: selectedOrders.length ? selectedOrders : undefined,
+        query: {
+          orderNos: parseOrderNos(applied.orderNos),
+          dateFrom: range?.[0]?.format('YYYY-MM-DD'),
+          dateTo: range?.[1]?.format('YYYY-MM-DD'),
+          customerName: applied.customerName,
+        },
+      })
+      if (!result.ok) {
+        message.warning('无可导出的销售单')
+        return
+      }
+      message.success('导出成功')
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : '导出失败')
+    } finally {
+      setExporting(false)
+    }
   }
 
   const columns: ColumnsType<SalesOrder> = [
@@ -136,6 +166,9 @@ export default function OrderListPage() {
         <Button type="primary" onClick={() => navigate('/orders/new')}>
           新建销售单
         </Button>
+        <Button loading={exporting} onClick={() => void onExport()}>
+          批量导出
+        </Button>
       </Space>
 
       <Card size="small" style={{ marginBottom: 16 }}>
@@ -180,6 +213,10 @@ export default function OrderListPage() {
         loading={loading}
         columns={columns}
         dataSource={orders}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: setSelectedRowKeys,
+        }}
         locale={{
           emptyText: (
             <Empty

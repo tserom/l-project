@@ -123,7 +123,7 @@ Print：SalesOrder + PrintProfile（常量）→ OutboundSlip DOM + @media print
 | v1 | `salesOrders: id, orderNo, updatedAt` |
 | v2 | + `invoiceDocs: id, invoiceNo, status, updatedAt` |
 | localStorage | 未使用 |
-| 导入/导出 | 无 |
+| 导入/导出 | 列表汇总 xlsx（前端生成；勾选优先） |
 | 种子数据 | 已移除（2026-07-29）；旧浏览器残留需手动删 |
 
 **风险**：清除站点数据会丢单；分发包数据按机器/浏览器隔离，不跨机同步。

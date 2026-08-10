@@ -1,7 +1,7 @@
 # 销售单列表「批量导出 Excel」设计
 
 **日期**：2026-08-10  
-**状态**：待实现  
+**状态**：已实现；实现计划见 `docs/superpowers/plans/2026-08-10-sales-order-batch-export-excel.md`  
 **范围**：`apps/sales-front` — 销售单列表汇总字段前端生成 `.xlsx`  
 **关联**：延续 `docs/superpowers/specs/2026-07-24-sales-order-app-design.md`；列表 API 见 `apps/sales-front/src/services/salesOrderApi.ts`
 
