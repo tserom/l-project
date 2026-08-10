@@ -15,9 +15,8 @@
 # 先建库
 mysql -uroot -p -e "CREATE DATABASE IF NOT EXISTS sales_manage DEFAULT CHARSET utf8mb4;"
 
-cp .env.example .env
-export $(grep -v '^#' .env | xargs)
-make run
+cp .env.example .env   # 按本机 MySQL 改 DB_PASSWORD 等
+make run               # main 内 godotenv 自动加载 .env
 # → http://127.0.0.1:8083/health
 ```
 

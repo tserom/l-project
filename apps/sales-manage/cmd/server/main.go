@@ -12,12 +12,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"github.com/tserom/l-project/apps/sales-manage/internal/config"
 	"github.com/tserom/l-project/apps/sales-manage/internal/database"
 	"github.com/tserom/l-project/apps/sales-manage/internal/router"
 )
 
 func main() {
+	// Local .env is optional; production should inject real env vars.
+	_ = godotenv.Load()
+
 	cfg := config.Load()
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)

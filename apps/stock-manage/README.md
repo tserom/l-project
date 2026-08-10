@@ -45,10 +45,9 @@ cd apps/stock-center && make run
 
 # 终端 2
 cd apps/stock-manage
-cp .env.example .env
-export $(grep -v '^#' .env | xargs)
+cp .env.example .env   # 按本机 MySQL 改 DB_PASSWORD 等
 make tidy
-make run
+make run               # main 内 godotenv 自动加载 .env
 ```
 
 默认端口：**8082**
