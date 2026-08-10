@@ -27,9 +27,8 @@ pkg/response        统一响应
 ```bash
 cd apps/stock-center
 cp .env.example .env   # 按需修改数据库连接
-export $(grep -v '^#' .env | xargs)
 make tidy
-make run
+make run               # main 内 godotenv 自动加载 .env
 ```
 
 默认端口：**8081**

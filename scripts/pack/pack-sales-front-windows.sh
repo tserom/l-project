@@ -1,24 +1,25 @@
 #!/usr/bin/env bash
-# Build sales-front and produce a Windows zip recipients can unzip and double-click.
+# Build sales-front + sales-manage.exe and produce a Windows zip
+# (recipient needs MySQL; unzip and double-click start-sales.bat).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
-
-# Ensure standard POSIX bin dirs are present. When this script is launched from a
-# Windows-native `make` (GnuWin32), the child bash may inherit a stripped PATH and
-# fail to locate zip/python3. Prepending these keeps macOS and WSL/Windows behavior
-# consistent.
-export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"
 
 DIST_DIR="$ROOT/dist"
 STAGING_PARENT="$DIST_DIR/.pack-staging-sales-front"
 STAGING="$STAGING_PARENT/sales-front-windows"
 ZIP="$DIST_DIR/sales-front-windows.zip"
 PACK_SRC="$ROOT/apps/sales-front/pack"
+MANAGE_APP="$ROOT/apps/sales-manage"
 
-# Windows App Execution Aliases (WindowsApps/python3.exe) advertise as python3 but
-# exit 49 without a real interpreter. Only treat a binary as usable if zipfile imports.
+is_windows_host() {
+  case "$(uname -s)" in
+    MINGW* | MSYS* | CYGWIN*) return 0 ;;
+  esac
+  [[ "${OS:-}" == Windows_NT ]]
+}
+
 python_can_zip() {
   "$@" -c "import zipfile" >/dev/null 2>&1
 }
@@ -29,7 +30,6 @@ zip_with_python() {
   "$runner" "$@" - "$ZIP_PATH" "$FOLDER" <<'PY'
 import os, sys, zipfile
 dst, src = sys.argv[1], sys.argv[2]
-# Keep top-level folder in the archive (same as `zip -r folder`).
 root_for_arc = os.path.dirname(src) or "."
 with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as z:
     for root, _, files in os.walk(src):
@@ -60,7 +60,6 @@ create_sales_front_zip() {
     return 0
   fi
 
-  # Windows py launcher (when installed); not the WindowsApps stub.
   if command -v py >/dev/null 2>&1 && python_can_zip py -3; then
     zip_with_python py -3
     return 0
@@ -82,8 +81,6 @@ create_sales_front_zip() {
   fi
 
   echo "ERROR: no zip tool found (need zip, a real python, powershell, or ditto)" >&2
-  echo "Hint on Windows: install Git for Windows (powershell fallback) or real Python," >&2
-  echo "or disable Settings → Apps → Advanced app settings → App execution aliases for python/python3." >&2
   exit 1
 }
 
@@ -94,14 +91,27 @@ echo "==> Building sales-front..."
   pnpm build
 )
 
+echo "==> Building sales-manage windows/amd64..."
+mkdir -p "$ROOT/bin"
+(
+  cd "$MANAGE_APP"
+  if is_windows_host; then
+    go build -o "$ROOT/bin/sales-manage.exe" ./cmd/server
+  else
+    GOOS=windows GOARCH=amd64 go build -o "$ROOT/bin/sales-manage.exe" ./cmd/server
+  fi
+)
+
 echo "==> Staging Windows bundle..."
 rm -rf "$STAGING_PARENT"
 mkdir -p "$STAGING"
-# Flat layout: index.html + assets next to start-sales.bat (easier for recipients)
 cp -R "$ROOT/apps/sales-front/dist/." "$STAGING/"
 cp "$PACK_SRC/start-sales.bat" "$STAGING/"
 cp "$PACK_SRC/serve.ps1" "$STAGING/"
 cp "$PACK_SRC/README.txt" "$STAGING/"
+cp "$ROOT/bin/sales-manage.exe" "$STAGING/"
+cp "$MANAGE_APP/.env.example" "$STAGING/.env"
+cp "$ROOT/scripts/mysql/init-sales-manage.sql" "$STAGING/init-sales-manage.sql"
 
 echo "==> Creating zip..."
 mkdir -p "$DIST_DIR"
@@ -114,4 +124,4 @@ rm -f "$ZIP"
 rm -rf "$STAGING_PARENT"
 
 echo "Done: $ZIP"
-echo "Send this zip to Windows users. They unzip and run start-sales.bat"
+echo "Recipient: create DB (init-sales-manage.sql), edit .env, run start-sales.bat"

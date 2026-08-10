@@ -15,7 +15,7 @@ import {
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { Dayjs } from 'dayjs'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   listSalesOrders,
@@ -23,10 +23,7 @@ import {
 } from '@/services/salesOrderApi'
 import type { SalesOrder } from '@/types/salesOrder'
 import { formatOrderDate } from '@/utils/dateFormat'
-import {
-  filterSalesOrders,
-  parseOrderNos,
-} from '@/utils/filterSalesOrders'
+import { parseOrderNos } from '@/utils/filterSalesOrders'
 import { formatAmount, formatQuantity, sumAmounts } from '@/utils/money'
 
 type QueryForm = {
@@ -40,12 +37,23 @@ export default function OrderListPage() {
   const [form] = Form.useForm<QueryForm>()
   const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState<SalesOrder[]>([])
+  const [total, setTotal] = useState(0)
   const [applied, setApplied] = useState<QueryForm>({})
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (query: QueryForm) => {
     setLoading(true)
     try {
-      setOrders(await listSalesOrders())
+      const range = query.dateRange
+      const result = await listSalesOrders({
+        orderNos: parseOrderNos(query.orderNos),
+        dateFrom: range?.[0]?.format('YYYY-MM-DD'),
+        dateTo: range?.[1]?.format('YYYY-MM-DD'),
+        customerName: query.customerName,
+        page: 1,
+        pageSize: 200,
+      })
+      setOrders(result.list)
+      setTotal(result.total)
     } catch (e) {
       message.error(e instanceof Error ? e.message : '加载失败')
     } finally {
@@ -54,26 +62,19 @@ export default function OrderListPage() {
   }, [])
 
   useEffect(() => {
-    void reload()
+    void reload({})
   }, [reload])
 
-  const filtered = useMemo(() => {
-    const range = applied.dateRange
-    return filterSalesOrders(orders, {
-      orderNos: parseOrderNos(applied.orderNos),
-      dateFrom: range?.[0]?.format('YYYY-MM-DD'),
-      dateTo: range?.[1]?.format('YYYY-MM-DD'),
-      customerName: applied.customerName,
-    })
-  }, [orders, applied])
-
   const onSearch = () => {
-    setApplied(form.getFieldsValue())
+    const values = form.getFieldsValue()
+    setApplied(values)
+    void reload(values)
   }
 
   const onReset = () => {
     form.resetFields()
     setApplied({})
+    void reload({})
   }
 
   const columns: ColumnsType<SalesOrder> = [
@@ -117,7 +118,7 @@ export default function OrderListPage() {
                 onOk: async () => {
                   await removeSalesOrder(record.id)
                   message.success('已删除')
-                  await reload()
+                  await reload(applied)
                 },
               })
             }}
@@ -178,13 +179,13 @@ export default function OrderListPage() {
         rowKey="id"
         loading={loading}
         columns={columns}
-        dataSource={filtered}
+        dataSource={orders}
         locale={{
           emptyText: (
             <Empty
-              description={orders.length === 0 ? '暂无销售单' : '无符合条件的销售单'}
+              description={total === 0 ? '暂无销售单' : '无符合条件的销售单'}
             >
-              {orders.length === 0 ? (
+              {total === 0 ? (
                 <Button type="primary" onClick={() => navigate('/orders/new')}>
                   新建第一张销售单
                 </Button>
@@ -195,13 +196,13 @@ export default function OrderListPage() {
         pagination={false}
         summary={() => {
           const totalAmount = sumAmounts(
-            filtered.map((o) => ({ amount: o.totalAmount })),
+            orders.map((o) => ({ amount: o.totalAmount })),
           )
           return (
             <Table.Summary fixed>
               <Table.Summary.Row>
                 <Table.Summary.Cell index={0} colSpan={6}>
-                  合计
+                  合计（本页 {orders.length} / 共 {total}）
                 </Table.Summary.Cell>
                 <Table.Summary.Cell index={1} align="right">
                   <strong>{formatAmount(totalAmount)}</strong>

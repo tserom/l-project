@@ -1,0 +1,75 @@
+---
+description: 个人默认交付：IndexedDB(Dexie)→Go+MySQL；页面只调*Api、qp语义开局、Flip单真源；不适用公司BsSula
+alwaysApply: false
+globs:
+  - **/services/**/*Api.ts
+  - **/storage/**
+  - **/docs/**/api-*-storage.md
+  - **/docs/**/domain-*.md
+---
+
+# 本地优先：IndexedDB → Go + MySQL
+
+个人 Vite + React（或同类）工具的**默认交付路径**：阶段一浏览器 IndexedDB（Dexie），阶段二 Gin + GORM + MySQL。  
+**不适用**公司 umi / BsSula 仓。
+
+**人读完整版（检查表 / Flip 日）**：知识库 `kb/domains/workflow/local-first-to-go-mysql.md`  
+本仓库人读摘要：`docs/standards/local-first-to-go-mysql.md`  
+操作 Skill：`docs/skills/local-first-to-go-mysql/SKILL.md`  
+列表筛选配合：`guidelines/api-query-predicate-params.md`
+
+---
+
+## 一句话
+
+页面只调 `*Api`；换的是 Api 底下的实现（Dexie → HTTP）。**禁止 IndexedDB 与 HTTP 长期双写。**
+
+---
+
+## 何时用 / 何时跳过
+
+| 用本路径 | 直接上 Go |
+|----------|-----------|
+| 单机先定领域模型、页面、校验、打印 | 开局就要多用户、权限、跨设备 |
+
+---
+
+## 阶段一 MUST
+
+| ✅ MUST | ❌ MUST NOT |
+|---------|-------------|
+| 页面只依赖 `*Api`（list/get/create/…） | 页面 `import` Dexie / `db` / Repository |
+| 领域类型在 `types/`；业务规则在 Api | 校验/合计散落在页面 |
+| 列表筛选按 `qp-*` **语义**设计公开字段 + operator（实现可先内存过滤） | 长期第三套 `filterXxx` 命名，与将来 HTTP 脱节 |
+| 跨实体写用 Dexie `transaction`，且能映射为「一个 HTTP + 一个 DB 事务」 | 跨实体一致性只靠页面顺序调用 |
+| README 写明：真源=IndexedDB；清站点丢数据 | 把 IndexedDB 写成最终架构承诺 |
+
+---
+
+## 阶段二 / Flip MUST
+
+| ✅ MUST | ❌ MUST NOT |
+|---------|-------------|
+| 保留 `*Api` 导出；内部改 `fetch` | 只改一半页面；两套可写并存 |
+| 列表落地 `qp-*` 白名单；非法 → 400 | 换存储时顺手造扁平 ad-hoc query |
+| 跨表逻辑收进 Go 事务；冲突有明确错误 | 假设「换了 MySQL」= 已对接其它域 |
+| Flip：空库直切，或 导出→导入→验证→停 Dexie 写 | Flip 期双真源可写 |
+
+---
+
+## Agent 触发
+
+- 用户说「先本地再上后端」「IndexedDB 先行」「个人项目默认交付路径」
+- 新个人工具仓脚手架 / 从 Dexie 迁 Go
+- 审销售单类本地优先项目的分层与筛选入参
+
+优先打开 kb 完整版勾检查表；本 guideline 只钉 MUST。
+
+---
+
+## PR / 开局勾选
+
+- [ ] 分层：页面 → Api → Repository → db？
+- [ ] 列表 `field+operator` 白名单是否已写（即使仍内存过滤）？
+- [ ] 跨实体写路径是否可收成单 HTTP 事务？
+- [ ] Flip 是否单真源？文档真源是否已改？

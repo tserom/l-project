@@ -15,7 +15,8 @@ export default function InvoiceListPage() {
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      setDocs(await listInvoiceDocs())
+      const result = await listInvoiceDocs({ page: 1, pageSize: 200 })
+      setDocs(result.list)
     } catch (e) {
       message.error(e instanceof Error ? e.message : '加载失败')
     } finally {

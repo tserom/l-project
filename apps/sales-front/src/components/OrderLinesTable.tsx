@@ -1,6 +1,7 @@
-import { Button, Checkbox, Input, InputNumber, Space, Table, Tag } from 'antd'
+import { Button, Checkbox, Input, Space, Table, Tag } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useEffect, useRef, useState } from 'react'
+import SelectOnFocusInputNumber from '@/components/SelectOnFocusInputNumber'
 import type { SalesOrderLine } from '@/types/salesOrder'
 import {
   calcLineAmount,
@@ -117,7 +118,7 @@ export default function OrderLinesTable({ value, onChange }: Props) {
       dataIndex: 'quantity',
       width: 110,
       render: (_, row) => (
-        <InputNumber
+        <SelectOnFocusInputNumber
           style={{ width: '100%' }}
           min={0}
           value={row.quantity}
@@ -132,7 +133,7 @@ export default function OrderLinesTable({ value, onChange }: Props) {
       dataIndex: 'unitPrice',
       width: 110,
       render: (_, row) => (
-        <InputNumber
+        <SelectOnFocusInputNumber
           style={{ width: '100%' }}
           min={0}
           step={0.01}

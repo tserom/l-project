@@ -1,0 +1,47 @@
+---
+description: antd InputNumber 聚焦全选，避免每次先清 0.00；优先用项目封装
+alwaysApply: false
+globs:
+  - **/*.{tsx,jsx}
+---
+
+# antd InputNumber：聚焦全选
+
+实现或修改 **可编辑** 的 antd `InputNumber`（数量、单价、金额录入等）时**默认遵守**。
+
+人读配套：[antd-input-number-select-on-focus.md](../docs/standards/antd-input-number-select-on-focus.md)  
+案例来源（kb）：个人仓销售单录入手感（`kb/domains/personal-react/antd-input-number.md`）。
+
+---
+
+## 痛点
+
+默认可编辑数字常是 `0` / `0.00`，聚焦后光标在末尾，每次输入都要先删再打。
+
+## MUST
+
+加上聚焦全选；用 `requestAnimationFrame` 延后一帧，避免鼠标点击抢光标导致全选失效：
+
+```tsx
+onFocus={(e) => {
+  const el = e.target
+  requestAnimationFrame(() => el.select())
+}}
+```
+
+若项目已有封装（如 `SelectOnFocusInputNumber`），**优先用封装**，不要散落重复 `onFocus`。
+
+## 可跳过
+
+- 只读 / `disabled` / 纯展示数字
+- 产品明确要求「点进去改某一位、不要全选」（少见，需写明）
+
+## MUST NOT
+
+- 不为了手感默认把 `0` 显示成空（那是另一套方案，需产品单独确认）
+- 不要改存库默认值语义，只改输入手感
+
+## 自检
+
+- [ ] 可编辑 `InputNumber` 是否聚焦全选或已走封装？
+- [ ] 鼠标点进后直接输入能否覆盖原值？

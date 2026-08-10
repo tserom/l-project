@@ -89,6 +89,9 @@ export default function OutboundSlip({ order, profile }: Props) {
       <div className="outbound-slip__footer">
         <span>地址：{profile.address}</span>
         <span>电话：{profile.phone}</span>
+        {order.outstandingBalance?.trim() ? (
+          <span>往来欠款：{order.outstandingBalance.trim()}</span>
+        ) : null}
         <span>备注：{order.remark ?? ''}</span>
       </div>
       <div className="outbound-slip__pickup">提货人：______________</div>

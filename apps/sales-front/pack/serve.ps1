@@ -1,12 +1,116 @@
-# Serves files next to this script (flat pack layout) with SPA fallback.
+# Serves static files next to this script, proxies /api → sales-manage :8083,
+# and starts sales-manage.exe when present (Windows pack layout).
 $ErrorActionPreference = 'Stop'
 
 $port = 5175
+$apiBase = 'http://127.0.0.1:8083'
 $webRoot = $PSScriptRoot
+$manageExe = Join-Path $webRoot 'sales-manage.exe'
+$envFile = Join-Path $webRoot '.env'
+$manageProc = $null
+
 if (-not (Test-Path (Join-Path $webRoot 'index.html'))) {
   Write-Host '[ERROR] Missing index.html next to serve.ps1'
   Write-Host ("Folder: {0}" -f $webRoot)
   exit 1
+}
+
+function Import-DotEnv([string]$path) {
+  if (-not (Test-Path -LiteralPath $path)) { return }
+  Get-Content -LiteralPath $path | ForEach-Object {
+    $line = $_.Trim()
+    if ($line -eq '' -or $line.StartsWith('#')) { return }
+    $idx = $line.IndexOf('=')
+    if ($idx -lt 1) { return }
+    $key = $line.Substring(0, $idx).Trim()
+    $val = $line.Substring($idx + 1).Trim()
+    [Environment]::SetEnvironmentVariable($key, $val, 'Process')
+  }
+}
+
+function Wait-ApiHealthy([string]$base, [int]$tries = 40) {
+  for ($i = 0; $i -lt $tries; $i++) {
+    try {
+      $r = Invoke-WebRequest -Uri ($base + '/health') -UseBasicParsing -TimeoutSec 1
+      if ($r.StatusCode -eq 200) { return $true }
+    } catch {
+      Start-Sleep -Milliseconds 400
+    }
+  }
+  return $false
+}
+
+function Proxy-ToApi($ctx) {
+  Add-Type -AssemblyName System.Net.Http | Out-Null
+  $client = New-Object System.Net.Http.HttpClient
+  $client.Timeout = [TimeSpan]::FromSeconds(60)
+  $resp = $null
+  try {
+    $uri = $apiBase + $ctx.Request.RawUrl
+    $method = New-Object System.Net.Http.HttpMethod $ctx.Request.HttpMethod
+    $msg = New-Object System.Net.Http.HttpRequestMessage $method, $uri
+
+    if ($ctx.Request.HasEntityBody) {
+      $ms = New-Object System.IO.MemoryStream
+      $ctx.Request.InputStream.CopyTo($ms)
+      $buf = $ms.ToArray()
+      # ,@ keeps the byte[] as one argument (PowerShell otherwise splat-unpacks it).
+      $msg.Content = New-Object System.Net.Http.ByteArrayContent @(, $buf)
+      if ($ctx.Request.ContentType) {
+        # ByteArrayContent may already have Content-Type; replace instead of duplicate.
+        $null = $msg.Content.Headers.Remove('Content-Type')
+        try {
+          $msg.Content.Headers.ContentType = [System.Net.Http.Headers.MediaTypeHeaderValue]::Parse($ctx.Request.ContentType)
+        } catch {
+          $null = $msg.Content.Headers.TryAddWithoutValidation('Content-Type', $ctx.Request.ContentType)
+        }
+      }
+    }
+
+    $resp = $client.SendAsync($msg).GetAwaiter().GetResult()
+    $bytes = $resp.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult()
+    $ctx.Response.StatusCode = [int]$resp.StatusCode
+    if ($resp.Content.Headers.ContentType) {
+      $ctx.Response.ContentType = $resp.Content.Headers.ContentType.ToString()
+    } else {
+      $ctx.Response.ContentType = 'application/json; charset=utf-8'
+    }
+    $ctx.Response.ContentLength64 = $bytes.Length
+    if ($bytes.Length -gt 0) {
+      $ctx.Response.OutputStream.Write($bytes, 0, $bytes.Length)
+    }
+  } catch {
+    Write-Host ("[ERROR] API proxy failed: {0}" -f $_.Exception.Message)
+    try {
+      $ctx.Response.StatusCode = 500
+      $payload = @{ code = 50000; message = ('API proxy failed: ' + $_.Exception.Message) } | ConvertTo-Json -Compress
+      $errBytes = [System.Text.Encoding]::UTF8.GetBytes($payload)
+      $ctx.Response.ContentType = 'application/json; charset=utf-8'
+      $ctx.Response.ContentLength64 = $errBytes.Length
+      $ctx.Response.OutputStream.Write($errBytes, 0, $errBytes.Length)
+    } catch {}
+  } finally {
+    if ($null -ne $resp) { $resp.Dispose() }
+    $client.Dispose()
+  }
+}
+
+# Start sales-manage when packaged next to this script
+if (Test-Path -LiteralPath $manageExe) {
+  Import-DotEnv $envFile
+  Write-Host 'Starting sales-manage.exe ...'
+  $manageProc = Start-Process -FilePath $manageExe -WorkingDirectory $webRoot -PassThru -WindowStyle Minimized
+  if (-not (Wait-ApiHealthy $apiBase)) {
+    Write-Host '[ERROR] sales-manage did not become healthy on :8083'
+    Write-Host 'Check MySQL is running, database sales_manage exists, and .env DB_* settings.'
+    if ($null -ne $manageProc -and -not $manageProc.HasExited) {
+      Stop-Process -Id $manageProc.Id -Force -ErrorAction SilentlyContinue
+    }
+    exit 1
+  }
+  Write-Host 'sales-manage is up (http://127.0.0.1:8083)'
+} else {
+  Write-Host '[WARN] sales-manage.exe not found; /api will fail unless something else listens on :8083'
 }
 
 $mime = @{
@@ -26,6 +130,8 @@ $mime = @{
   '.bat'  = 'text/plain'
   '.ps1'  = 'text/plain'
   '.txt'  = 'text/plain; charset=utf-8'
+  '.env'  = 'text/plain'
+  '.exe'  = 'application/octet-stream'
 }
 
 $prefix = "http://127.0.0.1:$port/"
@@ -37,11 +143,14 @@ try {
 } catch {
   Write-Host "[ERROR] Cannot listen on $prefix (port in use?)"
   Write-Host $_.Exception.Message
+  if ($null -ne $manageProc -and -not $manageProc.HasExited) {
+    Stop-Process -Id $manageProc.Id -Force -ErrorAction SilentlyContinue
+  }
   exit 1
 }
 
 Write-Host "sales-front running: $prefix"
-Write-Host 'Close this window to stop.'
+Write-Host 'Close this window to stop (also stops sales-manage).'
 Start-Process $prefix
 
 function Get-ContentType([string]$ext) {
@@ -55,8 +164,22 @@ try {
     $req = $ctx.Request
     $res = $ctx.Response
     try {
-      $rel = [Uri]::UnescapeDataString($req.Url.AbsolutePath.TrimStart('/'))
+      $path = $req.Url.AbsolutePath
+      if ($path.StartsWith('/api/', [StringComparison]::OrdinalIgnoreCase) -or
+          $path.Equals('/api', [StringComparison]::OrdinalIgnoreCase)) {
+        Proxy-ToApi $ctx
+        continue
+      }
+
+      $rel = [Uri]::UnescapeDataString($path.TrimStart('/'))
       if ([string]::IsNullOrWhiteSpace($rel)) { $rel = 'index.html' }
+
+      # Do not serve secrets / binaries as static downloads by accident via SPA
+      if ($rel -in @('.env', 'sales-manage.exe', 'serve.ps1', 'start-sales.bat')) {
+        $res.StatusCode = 404
+        $res.Close()
+        continue
+      }
 
       $candidate = [System.IO.Path]::GetFullPath((Join-Path $webRoot ($rel -replace '/', [IO.Path]::DirectorySeparatorChar)))
       $rootFull = [System.IO.Path]::GetFullPath($webRoot)
@@ -86,4 +209,8 @@ try {
 } finally {
   if ($listener.IsListening) { $listener.Stop() }
   $listener.Close()
+  if ($null -ne $manageProc -and -not $manageProc.HasExited) {
+    Write-Host 'Stopping sales-manage...'
+    Stop-Process -Id $manageProc.Id -Force -ErrorAction SilentlyContinue
+  }
 }
