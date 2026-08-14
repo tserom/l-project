@@ -18,21 +18,34 @@ export type MergedInvoiceLine = {
   deliveryTypes: string
 }
 
-function mergeKey(line: Pick<InvoiceDocLine, 'materialName' | 'spec' | 'unitPrice'>): string {
-  return `${line.materialName}\0${line.spec}\0${line.unitPrice}`
+function mergeKey(line: Pick<InvoiceDocLine, 'materialName' | 'unitPrice'>): string {
+  return `${line.materialName}\0${line.unitPrice}`
 }
 
 function uniqueJoin(values: string[]): string {
   return [...new Set(values.filter(Boolean))].join('、')
 }
 
-/** 按物资 + 规格型号 + 单价 合并；数量相加，金额按合计数量×单价重算 */
+/** 规格去重后按数字或字典序排序，用 `-` 拼接（如 30、40、50 → 30-40-50） */
+function joinSpecs(specs: string[]): string {
+  const unique = [...new Set(specs.map((s) => s.trim()).filter(Boolean))]
+  if (unique.length === 0) return ''
+  unique.sort((a, b) => {
+    const na = Number(a)
+    const nb = Number(b)
+    if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb
+    return a.localeCompare(b, 'zh-CN')
+  })
+  return unique.join('-')
+}
+
+/** 按物资 + 单价 合并；规格型号拼接展示，数量相加，金额按合计数量×单价重算 */
 export function mergeInvoiceLines(lines: InvoiceDocLine[]): MergedInvoiceLine[] {
   const map = new Map<
     string,
     {
       materialName: string
-      spec: string
+      specs: string[]
       unit: string
       unitPrice: number
       quantity: number
@@ -51,7 +64,7 @@ export function mergeInvoiceLines(lines: InvoiceDocLine[]): MergedInvoiceLine[] 
     if (!existing) {
       map.set(key, {
         materialName: line.materialName,
-        spec: line.spec,
+        specs: [line.spec],
         unit: line.unit,
         unitPrice: line.unitPrice,
         quantity: line.quantity,
@@ -65,6 +78,7 @@ export function mergeInvoiceLines(lines: InvoiceDocLine[]): MergedInvoiceLine[] 
     } else {
       existing.quantity += line.quantity
       existing.sourceCount += 1
+      existing.specs.push(line.spec)
       existing.orderNos.push(line.orderNo)
       existing.orderDates.push(line.orderDate)
       existing.customerNames.push(line.customerName)
@@ -76,7 +90,7 @@ export function mergeInvoiceLines(lines: InvoiceDocLine[]): MergedInvoiceLine[] 
   return [...map.entries()].map(([key, row]) => ({
     key,
     materialName: row.materialName,
-    spec: row.spec,
+    spec: joinSpecs(row.specs),
     unit: row.unit,
     unitPrice: row.unitPrice,
     quantity: row.quantity,

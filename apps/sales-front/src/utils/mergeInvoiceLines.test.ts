@@ -17,6 +17,49 @@ function line(partial: Partial<InvoiceDocLine> & Pick<InvoiceDocLine, 'id' | 'ma
 }
 
 describe('mergeInvoiceLines', () => {
+  it('merges same material+unitPrice and joins different specs', () => {
+    const merged = mergeInvoiceLines([
+      line({
+        id: '1',
+        materialName: '圆钢',
+        spec: '50',
+        unitPrice: 10,
+        quantity: 1,
+        amount: 10,
+      }),
+      line({
+        id: '2',
+        materialName: '圆钢',
+        spec: '40',
+        unitPrice: 10,
+        quantity: 2,
+        amount: 20,
+      }),
+      line({
+        id: '3',
+        materialName: '圆钢',
+        spec: '30',
+        unitPrice: 10,
+        quantity: 3,
+        amount: 30,
+      }),
+      line({
+        id: '4',
+        materialName: '圆钢',
+        spec: '30',
+        unitPrice: 11,
+        quantity: 1,
+        amount: 11,
+      }),
+    ])
+    expect(merged).toHaveLength(2)
+    const at10 = merged.find((r) => r.unitPrice === 10)!
+    expect(at10.spec).toBe('30-40-50')
+    expect(at10.quantity).toBe(6)
+    expect(at10.amount).toBe(60)
+    expect(at10.sourceCount).toBe(3)
+  })
+
   it('merges same material+spec+unitPrice and sums qty', () => {
     const merged = mergeInvoiceLines([
       line({

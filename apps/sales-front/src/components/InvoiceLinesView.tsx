@@ -122,7 +122,7 @@ export default function InvoiceLinesView({ lines, detailExtraColumns }: Props) {
           ]}
         />
         <span style={{ marginLeft: 12, color: '#666', fontSize: 13 }}>
-          合并规则：物资 + 规格型号 + 单价相同则合并数量
+          合并规则：物资 + 单价相同则合并数量，规格型号以「-」拼接展示
         </span>
       </div>
       {mode === 'detail' ? (
